@@ -196,7 +196,7 @@ class AuthController extends Controller
 
         $token = rand(1, 7998989898);
         $email = $request->email;
-$exist=DB::table('password_reset_tokens')->where('email',$request->email)->delete();
+        $exist = DB::table('password_reset_tokens')->where('email', $request->email)->delete();
         DB::table('password_reset_tokens')->insert([
             'email' => $email,
             'token' => $token,
@@ -216,7 +216,7 @@ $exist=DB::table('password_reset_tokens')->where('email',$request->email)->delet
         ]);
 
         $tokenData = DB::table('password_reset_tokens')
-            ->where('token',$token)
+            ->where('token', $token)
             ->where('email', $email)
             ->first();
 

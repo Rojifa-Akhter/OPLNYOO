@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\backend;
 
 use App\Http\Controllers\Controller;
+use App\Mail\AnswerSubmittedMail;
 use App\Models\Answer;
 use App\Models\Question;
 use App\Models\userAnswer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class OwnerController extends Controller
 {
@@ -82,9 +84,6 @@ class OwnerController extends Controller
             $validated = $request->validate([
                 'question_id' => 'required|exists:questions,id',
                 'answer_id' => 'required|exists:answers,id',
-            ], [
-                'question_id.exists' => 'The selected question does not exist.',
-                'answer_id.exists' => 'The selected answer does not exist.',
             ]);
 
             $user_id = auth()->id();
@@ -100,14 +99,24 @@ class OwnerController extends Controller
                 'answer_id' => $validated['answer_id'],
             ]);
 
-            return response()->json(['message' => 'Answer submitted successfully!', 'data' => $userAnswer], 201);
+            // Debug relationships
+            $question = $userAnswer->question;
+            $owner = $question->owner;
+
+            if (!$owner || !$owner->email) {
+                throw new \Exception('Owner or owner email not found');
+            }
+
+            // Send email to the question owner
+            Mail::to($owner->email)->send(new AnswerSubmittedMail($userAnswer));
+
+            return response()->json(['message' => 'Answer submitted successfully!'], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'An unexpected error occurred.'], 500);
+            return response()->json(['message' => $e->getMessage(), 'trace' => $e->getTrace()], 500);
         }
     }
-
     //view answer
     public function viewSubmittedAnswers()
     {
