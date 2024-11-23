@@ -40,11 +40,23 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
 });
 // owner
 Route::middleware(['auth:api', 'OWNER'])->group(function () {
-    Route::post('/formCreate', [OwnerController::class, 'formCreate']);
-    Route::get('/formEdit', [OwnerController::class, 'formEdit']);
-    Route::put('/formUpdate', [OwnerController::class, 'formUpdate']);
-    Route::delete('/formDelete', [OwnerController::class, 'formDelete']);
+    Route::get('/questionView', [OwnerController::class, 'view']);
+    Route::post('/questionCreate', [OwnerController::class, 'questionCreate']);
+    Route::put('/questionUpdate/{id}', [OwnerController::class, 'questionUpdate']);
+    Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
+
+    //answer
+    Route::post('/answerCreate', [OwnerController::class, 'answerCreate']);
+    Route::put('/answerUpdate/{id}', [OwnerController::class, 'answerUpdate']);
+    Route::delete('/answerDelete/{id}', [OwnerController::class, 'answerDelete']);
+
+    Route::get('/view-answers', [OwnerController::class, 'viewSubmittedAnswers']);
+
+
+
+});
+Route::middleware(['auth:api', 'USER'])->group(function () {
+    Route::post('/user-answers', [OwnerController::class, 'submitAnswer']);
 });
 
 
-Route::get('demo/email/{token}/{email}',[AuthController::class,'a']);

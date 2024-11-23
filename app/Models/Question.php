@@ -6,14 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Question extends Model
 {
-    protected $guarded =['id'];
+    protected $guarded = ['id'];
 
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
-    public function answer()
+    public function answers()
     {
         return $this->hasMany(Answer::class);
     }
+
+    public function submittedAnswers()
+    {
+        return $this->hasMany(userAnswer::class);
+    }
+
 }
