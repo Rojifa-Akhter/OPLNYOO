@@ -111,9 +111,11 @@ class OwnerController extends Controller
             Mail::to($owner->email)->send(new AnswerSubmittedMail($userAnswer));
 
             return response()->json(['message' => 'Answer submitted successfully!'], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        }
+         catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
+        }
+         catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage(), 'trace' => $e->getTrace()], 500);
         }
     }
