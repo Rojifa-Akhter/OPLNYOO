@@ -37,6 +37,10 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
     Route::post('/ownerCreate', [AdminController::class, 'ownerCreate']);
     Route::delete('/deleteUser', [AdminController::class, 'deleteUser']);
     Route::get('/showSoftDeletedUsers', [AdminController::class, 'SoftDeletedUsers']);
+    Route::get('/reviewQuestions', [AdminController::class, 'reviewQuestions']);
+    Route::post('/updateStatus/{id}', [AdminController::class, 'updateStatus']);
+    Route::delete('/deleteQuestion/{id}', [AdminController::class, 'deleteQuestion']);
+
 });
 // owner
 Route::middleware(['auth:api', 'OWNER'])->group(function () {
@@ -46,7 +50,7 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
 
     //answer
-    Route::post('/answerCreate', [OwnerController::class, 'answerCreate']);
+    Route::post('/addAnswer', [OwnerController::class, 'addAnswer']);
     Route::put('/answerUpdate/{id}', [OwnerController::class, 'answerUpdate']);
     Route::delete('/answerDelete/{id}', [OwnerController::class, 'answerDelete']);
 

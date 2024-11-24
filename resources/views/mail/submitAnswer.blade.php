@@ -1,12 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Answer Submitted</title>
+    <title>Answers Submitted</title>
 </head>
 <body>
-    <h1>A New Answer Has Been Submitted</h1>
-    <p><strong>Question:</strong> {{ $userAnswer->question->question }}</p>
-    <p><strong>Answer:</strong> {{ $userAnswer->answer->answer }}</p>
-    <p><strong>Submitted By:</strong> {{ $userAnswer->user->name }}</p>
+    <h1>Multiple Answers Submitted</h1>
+    @foreach($userAnswers as $userAnswer)
+        <p><strong>Question:</strong> {{ $userAnswer->question->question }}</p>
+
+        @if($userAnswer->short_answer)
+            <p><strong>Answer:</strong> {{ $userAnswer->short_answer }}</p>
+        @elseif($userAnswer->answer)
+            <p><strong>Answer:</strong> {{ $userAnswer->answer->answer }}</p>
+        @else
+            <p><strong>Answer:</strong> No answer provided.</p>
+        @endif
+
+        <hr>
+    @endforeach
+
+    <p><strong>Submitted By:</strong> {{ $userAnswers[0]->user->name }}</p>
 </body>
 </html>

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\backend;
 
 use App\Models\User;
+use App\Models\Question;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-
 
 class AdminController extends Controller
 {
@@ -43,5 +43,33 @@ class AdminController extends Controller
         $deletedUsers = User::onlyTrashed()->get();
 
         return response()->json(['message' => $deletedUsers], 200);
+    }
+    //question form related
+    public function reviewQuestions()
+    {
+        $questions = Question::where('status', 'pending')->with('owner')->get();
+
+        return response()->json(['data' => $questions], 200);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $question = Question::findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => 'required|in:approved,cancelled',
+        ]);
+
+        $question->update(['status' => $validated['status']]);
+
+        return response()->json(['message' => 'Status updated successfully.'], 200);
+    }
+
+    public function deleteQuestion($id)
+    {
+        $question = Question::findOrFail($id);
+        $question->delete();
+
+        return response()->json(['message' => 'Question deleted successfully.'], 200);
     }
 }

@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('owner_id')->nullable()->constrained('users');
             $table->string('question');
+            $table->enum('answer_type', ['option', 'checkbox', 'short_answer']);
+            $table->enum('status', ['pending', 'approved', 'cancelled'])->default('pending');
             $table->timestamps();
         });
     }
