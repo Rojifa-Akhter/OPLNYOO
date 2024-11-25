@@ -83,7 +83,11 @@ class OwnerController extends Controller
 
         foreach ($validated['answers'] as $answerData) {
             $question = Question::findOrFail($answerData['question_id']);
-
+            if ($question->status !== 'approved') {
+                return response()->json([
+                    'message' => 'You can only submit answers for approved questions.',
+                ], 400);
+            }
             $answer = userAnswer::create([
                 'user_id' => $userId,
                 'question_id' => $answerData['question_id'],
