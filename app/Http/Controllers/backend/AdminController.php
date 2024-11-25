@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\backend;
 
-use App\Models\User;
-use App\Models\Question;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\Question;
+use App\Models\User;
+use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
@@ -45,6 +45,14 @@ class AdminController extends Controller
         return response()->json(['message' => $deletedUsers], 200);
     }
     //question form related
+    public function getAdminNotifications()
+    {
+        $admin = auth()->user();
+        $notifications = $admin->notifications;
+
+        return response()->json(['notifications' => $notifications], 200);
+    }
+
     public function reviewQuestions()
     {
         $questions = Question::where('status', 'pending')->with('owner')->get();

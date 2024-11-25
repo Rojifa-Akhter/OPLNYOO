@@ -23,7 +23,7 @@ Route::group(['prefix' => 'auth'], function ($router) {
 Route::middleware(['auth:api'])->group(function () {
     Route::put('/profile/update', [AuthController::class, 'updateProfile']);
     Route::post('change_password', [AuthController::class, 'changePassword']);
-    // Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
 
 });
@@ -37,7 +37,7 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
     Route::post('/ownerCreate', [AdminController::class, 'ownerCreate']);
     Route::delete('/deleteUser', [AdminController::class, 'deleteUser']);
     Route::get('/showSoftDeletedUsers', [AdminController::class, 'SoftDeletedUsers']);
-    Route::get('/reviewQuestions', [AdminController::class, 'reviewQuestions']);
+    Route::get('/notifications', [AdminController::class, 'getAdminNotifications']);
     Route::post('/updateStatus/{id}', [AdminController::class, 'updateStatus']);
     Route::delete('/deleteQuestion/{id}', [AdminController::class, 'deleteQuestion']);
 

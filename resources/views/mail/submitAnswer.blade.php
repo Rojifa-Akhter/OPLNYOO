@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,7 +7,8 @@
 <body>
     <h1>Multiple Answers Submitted</h1>
     @foreach($userAnswers as $userAnswer)
-        <p><strong>Question:</strong> {{ $userAnswer->question->question }}</p>
+
+        <p><strong>Question: {{ $userAnswer->question->question }}</strong></p>
 
         @if($userAnswer->short_answer)
             <p><strong>Answer:</strong> {{ $userAnswer->short_answer }}</p>
@@ -16,9 +18,9 @@
             <p><strong>Answer:</strong> No answer provided.</p>
         @endif
 
-        <hr>
     @endforeach
-
+    <hr>
     <p><strong>Submitted By:</strong> {{ $userAnswers[0]->user->name }}</p>
+    <p><strong>Submitted Email:</strong> {{ $userAnswer->user->email }}</p>
 </body>
 </html>

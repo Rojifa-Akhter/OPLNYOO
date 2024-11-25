@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\backend;
 
-use App\Events\QuestionCreated;
 use App\Http\Controllers\Controller;
 use App\Mail\AnswerSubmittedMail;
 use App\Models\Answer;
 use App\Models\Question;
+use App\Models\User;
 use App\Models\userAnswer;
+use App\Notifications\QuestionForm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
 class OwnerController extends Controller
 {
-    // question create section
+
     public function questionCreate(Request $request)
     {
         $validated = $request->validate([
@@ -25,10 +26,15 @@ class OwnerController extends Controller
         $question->owner_id = auth()->id();
         $question->save();
 
-        broadcast(new QuestionCreated($question));
+        // Notify admin
+        $admin = User::where('role', 'admin')->first(); 
+        if ($admin) {
+            $admin->notify(new QuestionForm($question));
+        }
 
         return response()->json(['message' => 'Question Created Successfully'], 201);
     }
+
     public function questionUpdate(Request $request, $id)
     {
         $question = Question::findOrFail($id);
@@ -100,7 +106,6 @@ class OwnerController extends Controller
 
             foreach ($validated['questions'] as $questionData) {
                 $question = Question::findOrFail($questionData['question_id']);
-
 
                 if ($question->status !== 'approved') {
                     return response()->json(['message' => 'You can only answer approved questions.'], 403);
