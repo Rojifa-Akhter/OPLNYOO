@@ -46,7 +46,6 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
 Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::get('/questionView', [OwnerController::class, 'view']);
     Route::post('/questionCreate', [OwnerController::class, 'questionCreate']);
-    Route::put('/questionUpdate/{id}', [OwnerController::class, 'questionUpdate']);
     Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
 
     //answer

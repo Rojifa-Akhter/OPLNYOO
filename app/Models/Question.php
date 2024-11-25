@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Question extends Model
 {
     protected $guarded = ['id'];
-
+    protected $casts = [
+        'options' => 'array',
+    ];
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');

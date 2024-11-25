@@ -18,33 +18,43 @@ class OwnerController extends Controller
     public function questionCreate(Request $request)
     {
         $validated = $request->validate([
-            'question' => 'required|string|min:10',
-            'answer_type' => 'required|in:option,checkbox,short_answer',
+            'questions' => 'required|array',
+            'questions.*.question' => 'required|string',
+            'questions.*.answer_type' => 'required|in:multiple,checkbox,short_answer',
+            'questions.*.options' => 'nullable|array',
+            'questions.*.options.*' => 'string',
         ]);
 
-        $question = Question::create($validated);
-        $question->owner_id = auth()->id();
-        $question->save();
+        $questions = [];
+        foreach ($validated['questions'] as $questionData) {
+            $options = null;
+            if (in_array($questionData['answer_type'], ['multiple', 'checkbox']) && isset($questionData['options'])) {
+                $options = $questionData['options'];
+            }
 
-        // Notify admin
-        $admin = User::where('role', 'admin')->first(); 
-        if ($admin) {
-            $admin->notify(new QuestionForm($question));
+            $question = Question::updateOrCreate([
+                'question' => $questionData['question'],
+                'answer_type' => $questionData['answer_type'],
+                'owner_id' => auth()->id(),
+            ], [
+                'options' => $options,
+            ]);
+
+            $questions[] = $question;
+
+            // Notify admin
+            $admin = User::where('role', 'admin')->first();
+            if ($admin) {
+                $admin->notify(new QuestionForm($question));
+            }
         }
 
-        return response()->json(['message' => 'Question Created Successfully'], 201);
+        return response()->json([
+            'message' => 'Questions Created Successfully',
+            'data' => $questions,
+        ], 201);
     }
 
-    public function questionUpdate(Request $request, $id)
-    {
-        $question = Question::findOrFail($id);
-        $validated = $request->validate([
-            'question' => 'required|string|min:10',
-            'answer_type' => 'required|in:option,checkbox,short_answer',
-        ]);
-        $question->update($validated);
-        return response()->json(['message' => 'Question Update Successfully'], 200);
-    }
     public function questionDelete($id)
     {
         $question = Question::findOrFail($id);
