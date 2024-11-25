@@ -10,19 +10,14 @@ class Question extends Model
     protected $casts = [
         'options' => 'array',
     ];
-    public function owner()
+    public function question()
     {
-        return $this->belongsTo(User::class, 'owner_id');
+        return $this->belongsTo(Question::class);
     }
 
-    public function answers()
+    public function user()
     {
-        return $this->hasMany(Answer::class);
-    }
-
-    public function submittedAnswers()
-    {
-        return $this->hasMany(userAnswer::class);
+        return $this->belongsTo(User::class);
     }
 
 }

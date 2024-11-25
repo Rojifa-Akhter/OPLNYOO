@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\UserAnswer;
+use App\Models\userAnswer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -14,10 +14,12 @@ class AnswerSubmittedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $user;
     public $userAnswers;
 
-    public function __construct($userAnswers)
+    public function __construct($user,$userAnswers)
     {
+        $this->user = $user;
         $this->userAnswers = $userAnswers; // Accepting array of userAnswers
     }
 

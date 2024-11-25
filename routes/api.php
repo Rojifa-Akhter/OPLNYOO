@@ -59,7 +59,8 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
-    Route::post('/user-answers', [OwnerController::class, 'submitAnswer']);
+    Route::post('/submit-answers', [OwnerController::class, 'submitAnswers']);
+
 });
 
 
