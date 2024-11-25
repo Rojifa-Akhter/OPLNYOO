@@ -20,4 +20,18 @@ class Question extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    // Define the answers relationship
+    public function answers()
+    {
+        return $this->hasMany(userAnswer::class, 'question_id');
+    }
+
+    // Define the submittedAnswers relationship (if it's the same as answers)
+    public function submittedAnswers()
+    {
+        return $this->hasMany(userAnswer::class, 'question_id');
+    }
 }
+
+
+

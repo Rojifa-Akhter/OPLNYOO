@@ -111,13 +111,15 @@ class OwnerController extends Controller
     }
     //view answer
     public function viewSubmittedAnswers()
-    {
-        $ownerId = auth()->id();
+{
+    $ownerId = auth()->id();
 
-        $questions = Question::with(['answers', 'submittedAnswers.user'])
-            ->where('owner_id', $ownerId)
-            ->get();
+    $questions = Question::with(['answers', 'submittedAnswers.user'])
+        ->where('owner_id', $ownerId)
+        ->get();
 
-        return response()->json(['data' => $questions], 200);
-    }
+    return response()->json(
+        ['question' => $questions], 200);
+}
+
 }
