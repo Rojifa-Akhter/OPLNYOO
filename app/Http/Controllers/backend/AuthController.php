@@ -30,13 +30,7 @@ class AuthController extends Controller
         ]);
 
         $otp = rand(100000, 999999);
-        $user = User::create([
-            'name' => $validator['name'],
-            'email' => $validator['email'],
-            'location' => $validator['location'],
-            'password' => bcrypt($validator['password']),
-            'role' => $validator['role'],
-        ]);
+        $user = User::create($validator);
 
         $user->otp = $otp;
         $user->save();
@@ -203,7 +197,7 @@ class AuthController extends Controller
             'created_at' => now(),
         ]);
 
-        $resetUrl = url('api/demo/reset-password/' . $token . '/' . $email);
+        $resetUrl = url('api/reset-password/' . $token . '/' . $email);
 
         return response()->json(['reset_url' => $resetUrl]);
     }

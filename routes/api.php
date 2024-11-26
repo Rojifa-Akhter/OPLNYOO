@@ -14,9 +14,9 @@ use App\Http\Controllers\backend\OwnerController;
 // })->middleware('auth:sanctum');
 Route::group(['prefix' => 'auth'], function ($router) {
     Route::post('signup', [AuthController::class, 'signup']);
+    Route::post('verify', [AuthController::class, 'verify']);
     Route::post('socialLogin', [AuthController::class, 'socialLogin']);
     Route::post('login', [AuthController::class, 'login']);
-    Route::post('verify', [AuthController::class, 'verify']);
     Route::post('logout', [AuthController::class, 'logout']);
 
 });
@@ -24,13 +24,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::put('/profile/update', [AuthController::class, 'updateProfile']);
     Route::post('change_password', [AuthController::class, 'changePassword']);
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/reset-password/{token}/{email}', [AuthController::class, 'resetPassword']);
 
 });
-
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password/{token}/{email}', [AuthController::class, 'resetPassword']);
-
 
 // Admins
 Route::middleware(['auth:api', 'ADMIN'])->group(function () {
@@ -44,18 +40,10 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
 });
 // owner
 Route::middleware(['auth:api', 'OWNER'])->group(function () {
-    Route::get('/questionView', [OwnerController::class, 'view']);
     Route::post('/questionCreate', [OwnerController::class, 'questionCreate']);
     Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
 
-    //answer
-    Route::post('/addAnswer', [OwnerController::class, 'addAnswer']);
-    Route::put('/answerUpdate/{id}', [OwnerController::class, 'answerUpdate']);
-    Route::delete('/answerDelete/{id}', [OwnerController::class, 'answerDelete']);
-
     Route::get('/view-answers', [OwnerController::class, 'viewSubmittedAnswers']);
-
-
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
