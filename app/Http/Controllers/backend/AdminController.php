@@ -5,6 +5,7 @@ namespace App\Http\Controllers\backend;
 use App\Http\Controllers\Controller;
 use App\Models\Question;
 use App\Models\User;
+use App\Models\userAnswer;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
@@ -53,11 +54,48 @@ class AdminController extends Controller
         return response()->json(['notifications' => $notifications], 200);
     }
 
-    public function reviewQuestions()
+    // public function showUser()
+    // {
+    //     $users = User::all();
+    //     $users = User::paginate(10);
+    //     return response()->json(['data' => $users], 200);
+    // }
+    //show user and page
+    public function showUser(Request $request)
     {
-        $questions = Question::where('status', 'pending')->with('owner')->get();
+        $search = $request->input('search');
 
-        return response()->json(['data' => $questions], 200);
+        $ownersQuery = User::where('role', 'OWNER');
+        $usersQuery = User::where('role', 'USER');
+
+        if ($search) {
+            $ownersQuery->where(function ($query) use ($search) {
+                $query->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+
+            $usersQuery->where(function ($query) use ($search) {
+                $query->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+        }
+        $owners = $ownersQuery->paginate(10, ['*'], 'owners_page');
+        $users = $usersQuery->paginate(10, ['*'], 'users_page');
+
+        $response = [];
+
+        if ($owners->isEmpty()) {
+            $response['owners_message'] = "Cam't find this owner।";
+        } else {
+            $response['owners'] = $owners;
+        }
+
+        if ($users->isEmpty()) {
+            $response['users_message'] = "Cant't find this user";
+        } else {
+            $response['users'] = $users;
+        }
+        return response()->json($response, 200);
     }
 
     public function updateStatus(Request $request, $id)
@@ -80,4 +118,40 @@ class AdminController extends Controller
 
         return response()->json(['message' => 'Question deleted successfully.'], 200);
     }
+
+    // dashboard
+    public function getDashboardStatistics()
+    {
+
+        $totalUsers = User::count();
+
+        $totalQuestions = Question::count();
+
+        $totalAnswers = userAnswer::count();
+
+        return response()->json([
+            'total_users' => $totalUsers,
+            'total_questions' => $totalQuestions,
+            'total_answers' => $totalAnswers,
+        ], 200);
+    }
+    public function getMonthlyAnswerStatistics()
+    {
+        $monthlyStatistics = userAnswer::selectRaw('MONTH(created_at) as month, COUNT(*) as total_answers')
+            ->groupBy('month')
+            ->orderBy('month', )
+            ->get()
+            ->keyBy('month');
+
+        $statistics = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $statistics[] = [
+                'month_name' => date('F', mktime(0, 0, 0, $i, 1)),
+                'total_answers' => $monthlyStatistics->get($i)->total_answers ?? 0,
+            ];
+        }
+        return $statistics;
+
+    }
+
 }

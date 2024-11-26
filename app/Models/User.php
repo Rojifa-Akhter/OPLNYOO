@@ -14,6 +14,8 @@ class User extends Authenticatable implements JWTSubject
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable,SoftDeletes;
 
+    
+
     protected $dates = ['deleted_at'];
     protected $guarded = ['id'];
 

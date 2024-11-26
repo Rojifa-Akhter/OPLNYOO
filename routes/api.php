@@ -18,9 +18,6 @@ Route::group(['prefix' => 'auth'], function ($router) {
     Route::post('socialLogin', [AuthController::class, 'socialLogin']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('logout', [AuthController::class, 'logout']);
-
-});
-Route::middleware(['auth:api'])->group(function () {
     Route::put('/profile/update', [AuthController::class, 'updateProfile']);
     Route::post('change_password', [AuthController::class, 'changePassword']);
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
@@ -33,9 +30,14 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
     Route::post('/ownerCreate', [AdminController::class, 'ownerCreate']);
     Route::delete('/deleteUser', [AdminController::class, 'deleteUser']);
     Route::get('/showSoftDeletedUsers', [AdminController::class, 'SoftDeletedUsers']);
+    Route::get('/showUser', [AdminController::class, 'showUser']);
     Route::get('/notifications', [AdminController::class, 'getAdminNotifications']);
     Route::post('/updateStatus/{id}', [AdminController::class, 'updateStatus']);
     Route::delete('/deleteQuestion/{id}', [AdminController::class, 'deleteQuestion']);
+    Route::get('/dashboard-statistics', [AdminController::class, 'getDashboardStatistics']);
+    Route::get('/monthly-answer-statistics', [AdminController::class, 'getMonthlyAnswerStatistics']);
+
+
 
 });
 // owner

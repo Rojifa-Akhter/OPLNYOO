@@ -92,7 +92,13 @@ class AuthController extends Controller
 
         $token = JWTAuth::fromUser($user);
 
-        return response()->json(['access_token' => $token, 'token_type' => 'bearer']);
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+        ]);
     }
 
     //login
@@ -111,6 +117,8 @@ class AuthController extends Controller
             return response()->json([
                 'access_token' => $token,
                 'token_type' => 'bearer',
+                'name' => $user->name,
+                'email' => $user->email,
                 'role' => $user->role,
                 'email_verified_at' => $user->email_verified_at,
             ]);
