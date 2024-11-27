@@ -68,7 +68,28 @@ class OwnerController extends Controller
         $question->delete();
         return response()->json(['message' => 'Question Delete Successfully'], 200);
     }
-    // submit answer
+    //view answer
+    public function viewSubmittedAnswers()
+    {
+        $ownerId = auth()->id();
+
+        $questions = Question::with(['answers', 'submittedAnswers.user'])
+            ->where('owner_id', $ownerId)
+            ->get();
+
+        return response()->json(
+            ['question' => $questions], 200);
+    }
+    public function deleteSubmittedAnswers($id)
+    {
+        $ownerId = auth()->id();
+
+        $answers = userAnswer::findOrFail($id);
+
+        $answers->delete();
+        return response()->json(["message" => "Submitted Answer Delete Successfully"]);
+    }
+    // submit answer for users
     public function submitAnswers(Request $request)
     {
         $validated = $request->validate([
@@ -109,17 +130,70 @@ class OwnerController extends Controller
             'data' => $submittedAnswers,
         ], 201);
     }
-    //view answer
-    public function viewSubmittedAnswers()
-{
-    $ownerId = auth()->id();
+    public function survey()
+    {
+        $userId = auth()->id();
 
-    $questions = Question::with(['answers', 'submittedAnswers.user'])
-        ->where('owner_id', $ownerId)
-        ->get();
+        $submittedAnswers = userAnswer::with(['question.user'])
+            ->where('user_id', $userId)
+            ->get();
 
-    return response()->json(
-        ['question' => $questions], 200);
-}
+        if ($submittedAnswers->isEmpty()) {
+            return response()->json([
+                'message' => 'You have not submitted any feedback yet.',
+            ], 200);
+        }
+
+        $messages = $submittedAnswers->map(function ($answer) {
+            $ownerName = $answer->question->user->name ?? 'Unknown Owner';
+            $submittedAt = $answer->created_at->format('Y-m-d');
+
+            return "You submitted your feedback to $ownerName on $submittedAt";
+        });
+
+        return response()->json([
+            'messages' => $messages,
+        ], 200);
+    }
+    public function companylist()
+    {
+        $owners = User::select('name', 'location')->where('role', 'OWNER')->get();
+
+        if ($owners->isEmpty()) {
+            return response()->json([
+                'message' => 'No owners found.',
+            ], 404);
+        }
+        $companyList = $owners->map(function ($owner) {
+            return "{$owner->name} - {$owner->location}";
+        });
+
+        return response()->json([
+            'owner_list' => $companyList,
+        ], 200);
+    }
+    public function companyDetails($ownerId)
+    {
+
+        $owner = User::select('image', 'name', 'location', 'description')
+            ->where('role', 'OWNER')
+            ->where('id', $ownerId)
+            ->first();
+
+        if (!$owner) {
+            return response()->json([
+                'message' => 'Owner not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'ownerDetails' => [
+                'image' => $owner->image,
+                'name' => $owner->name,
+                'location' => $owner->location,
+                'description' => $owner->description,
+            ],
+        ], 200);
+    }
 
 }

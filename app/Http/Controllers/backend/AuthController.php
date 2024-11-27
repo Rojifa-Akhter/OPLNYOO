@@ -149,16 +149,19 @@ class AuthController extends Controller
     // update profile
     public function updateProfile(Request $request)
     {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated.'], 401);
+        }
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
-            'password' => 'nullable|string|min:6|confirmed',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-        $user = Auth::user();
+
         if ($request->has('name')) {
             $user->name = $request->name;
         }
@@ -174,6 +177,7 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Profile updated successfully', 'user' => $user], 200);
     }
+
     public function changePassword(Request $request)
     {
         $request->validate([

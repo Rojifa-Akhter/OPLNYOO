@@ -46,11 +46,14 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
 
     Route::get('/view-answers', [OwnerController::class, 'viewSubmittedAnswers']);
+    Route::delete('/delete-answers/{id}', [OwnerController::class, 'deleteSubmittedAnswers']);
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
     Route::post('/submit-answers', [OwnerController::class, 'submitAnswers']);
-
+    Route::get('/survey', [OwnerController::class, 'survey']);
+    Route::get('/companylist', [OwnerController::class, 'companylist']);
+    Route::get('/company-details/{ownerId}', [OwnerController::class, 'companyDetails']);
 });
 
 

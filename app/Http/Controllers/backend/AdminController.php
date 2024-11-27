@@ -85,13 +85,13 @@ class AdminController extends Controller
         $response = [];
 
         if ($owners->isEmpty()) {
-            $response['owners_message'] = "Cam't find this owner।";
+            $response['owners_message'] = "There is no one by this name.";
         } else {
             $response['owners'] = $owners;
         }
 
         if ($users->isEmpty()) {
-            $response['users_message'] = "Cant't find this user";
+            $response['users_message'] = "There is no one by this name";
         } else {
             $response['users'] = $users;
         }
@@ -108,7 +108,7 @@ class AdminController extends Controller
 
         $question->update(['status' => $validated['status']]);
 
-        return response()->json(['message' => 'Status updated successfully.'], 200);
+        return response()->json(['message' => 'Status updated successfully.',$question], 200);
     }
 
     public function deleteQuestion($id)

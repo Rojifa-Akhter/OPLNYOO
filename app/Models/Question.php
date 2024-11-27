@@ -31,6 +31,7 @@ class Question extends Model
     {
         return $this->hasMany(userAnswer::class, 'question_id');
     }
+
 }
 
 
