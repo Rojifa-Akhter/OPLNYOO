@@ -17,8 +17,16 @@ class AdminController extends Controller
             'email' => 'required|string|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
         ]);
+        $imagePaths = [];
+        if ($request->has('images')) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('img', 'public');
+                $imagePaths[] = asset('storage/' . $path);
+            }
+        }
         $owner = User::create([
             'name' => $validator['name'],
+            'images' => json_encode($imagePaths),
             'email' => $validator['email'],
             'role' => 'OWNER',
             'location' => $request->location ?? null,

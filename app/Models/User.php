@@ -14,7 +14,7 @@ class User extends Authenticatable implements JWTSubject
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable,SoftDeletes;
 
-    
+
 
     protected $dates = ['deleted_at'];
     protected $guarded = ['id'];
@@ -39,6 +39,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'image'=>'array',
         ];
     }
     public function getJWTIdentifier()

@@ -180,6 +180,9 @@ class OwnerController extends Controller
             ->where('id', $ownerId)
             ->first();
 
+            $images=json_decode($owner->image,true);
+
+
         if (!$owner) {
             return response()->json([
                 'message' => 'Owner not found.',
@@ -188,7 +191,7 @@ class OwnerController extends Controller
 
         return response()->json([
             'ownerDetails' => [
-                'image' => $owner->image,
+                'image' => $images,
                 'name' => $owner->name,
                 'location' => $owner->location,
                 'description' => $owner->description,

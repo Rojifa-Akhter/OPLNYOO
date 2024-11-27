@@ -5,6 +5,7 @@ namespace App\Http\Controllers\backend;
 use App\Http\Controllers\Controller;
 use App\Mail\sendOtp;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,26 +16,51 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use PharIo\Manifest\Url;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
     //registration
     public function signup(Request $request)
     {
-        $validator = $request->validate([
+
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
             'location' => 'required|string|max:255',
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:ADMIN,OWNER,USER',
+            'image' => 'nullable|array|max:5',
+            'image.*' => 'image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240'
         ]);
 
-        $otp = rand(100000, 999999);
-        $user = User::create($validator);
 
-        $user->otp = $otp;
-        $user->save();
-        Mail::to($user->email)->send(new sendOtp($otp));
+        $imagePaths = [];
+        if ($request->has('image')) {
+            foreach ($request->file('image') as $image) {
+                $path = $image->store('img', 'public');
+                $imagePaths[] = asset('storage/' . $path);
+            }
+        }
+
+
+        $otp = rand(100000, 999999);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'location' => $validated['location'],
+            'password' => bcrypt($validated['password']),
+            'role' => $validated['role'],
+            'image' => json_encode($imagePaths),
+            'otp' => $otp,
+        ]);
+
+        try {
+            Mail::to($user->email)->send(new sendOtp($otp));
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+        }
 
         $message = match ($user->role) {
             'ADMIN' => 'Welcome Admin! Please verify your email',
@@ -44,7 +70,6 @@ class AuthController extends Controller
 
         return response()->json(['message' => $message], 200);
     }
-
     //social login
     public function socialLogin(Request $request)
     {
