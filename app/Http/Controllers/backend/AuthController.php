@@ -23,23 +23,19 @@ class AuthController extends Controller
     //registration
     public function signup(Request $request)
     {
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
             'location' => 'required|string|max:255',
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:ADMIN,OWNER,USER',
-            'image' => 'nullable|array|max:5',
-            'image.*' => 'image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
-
-        $imagePaths = [];
+        $imagePath = null;
         if ($request->has('image')) {
-            foreach ($request->file('image') as $image) {
-                $path = $image->store('img', 'public');
-                $imagePaths[] = asset('storage/' . $path);
-            }
+            $image = $request->file('image');
+            $path = $image->store('profile_images', 'public'); 
+            $imagePath = asset('storage/' . $path);
         }
 
         $otp = rand(100000, 999999);
@@ -50,7 +46,7 @@ class AuthController extends Controller
             'location' => $validated['location'],
             'password' => bcrypt($validated['password']),
             'role' => $validated['role'],
-            'image' => json_encode($imagePaths),
+            'image' => $imagePath,
             'otp' => $otp,
         ]);
 
@@ -61,13 +57,14 @@ class AuthController extends Controller
         }
 
         $message = match ($user->role) {
-            'ADMIN' => 'Welcome Admin! Please verify your email',
-            'OWNER' => 'Welcome Business Owner! Please verify your email',
-            default => 'Welcome User! Please verify your email',
+            'ADMIN' => 'Welcome Admin! Please verify your email.',
+            'OWNER' => 'Welcome Business Owner! Please verify your email.',
+            default => 'Welcome User! Please verify your email.',
         };
 
         return response()->json(['message' => $message], 200);
     }
+
     //social login
     public function socialLogin(Request $request)
     {
@@ -185,7 +182,6 @@ class AuthController extends Controller
     }
     public function updateProfile(Request $request)
     {
-
         $user = Auth::guard('api')->user();
 
         if (!$user) {
@@ -197,8 +193,7 @@ class AuthController extends Controller
             'email' => 'nullable|email|unique:users,email,' . $user->id,
             'location' => 'nullable|string|max:255',
             'password' => 'nullable|string|min:6|confirmed',
-            'image' => 'nullable|array|max:2',
-            'image.*' => 'image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
 
         if ($request->has('name')) {
@@ -215,18 +210,18 @@ class AuthController extends Controller
         }
 
         if ($request->has('image')) {
-            $imagePaths = [];
-            foreach ($request->file('image') as $image) {
-                if ($image->isValid()) {
-                    $path = $image->store('profile_images', 'public');
-                    $imagePaths[] = asset('storage/' . $path);
-                } else {
-                    return response()->json(['error' => 'One or more images failed to upload.'], 400);
-                }
+            $image = $request->file('image');
+
+            if ($image->isValid()) {
+                $path = $image->store('profile_images', 'public');
+                $imagePath = asset('storage/' . $path);
+
+                $user->image = $imagePath;
+            } else {
+                return response()->json(['error' => 'The image failed to upload.'], 400);
             }
-            $user->image = json_encode($imagePaths);
         } elseif (!$request->has('image') && !$user->image) {
-            $user->image = json_encode([]);
+            $user->image = null;
         }
 
         $user->save();
@@ -237,7 +232,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'location' => $user->location,
-                'image' => $user->image ? json_decode($user->image) : [],
+                'image' => $user->image,
             ],
         ], 200);
     }
