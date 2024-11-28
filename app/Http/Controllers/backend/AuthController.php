@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\backend;
 
-use Exception;
-use App\Models\User;
-use PharIo\Manifest\Url;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use App\Mail\OTPVerification;
-use Illuminate\Support\Facades\DB;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Mail\OTPVerification;
+use App\Models\User;
+use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use PharIo\Manifest\Url;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -31,9 +31,8 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:ADMIN,OWNER,USER',
             'image' => 'nullable|array|max:5',
-            'image.*' => 'image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240'
+            'image.*' => 'image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
-
 
         $imagePaths = [];
         if ($request->has('image')) {
@@ -42,7 +41,6 @@ class AuthController extends Controller
                 $imagePaths[] = asset('storage/' . $path);
             }
         }
-
 
         $otp = rand(100000, 999999);
 
@@ -134,7 +132,6 @@ class AuthController extends Controller
         if ($token = Auth::guard('api')->attempt($credentials)) {
             $user = Auth::guard('api')->user();
 
-            // Check email verification only for non-OWNER roles
             if ($user->role !== 'OWNER' && !$user->hasVerifiedEmail()) {
                 return response()->json(['error' => 'Email not verified. Please check your email.'], 403);
             }
@@ -154,7 +151,6 @@ class AuthController extends Controller
 
     public function verify(Request $request)
     {
-
         $validator = Validator::make($request->all(), [
             'otp' => 'required|numeric',
         ]);
@@ -164,43 +160,83 @@ class AuthController extends Controller
         }
 
         $user = User::where('otp', $request->otp)->first();
+
         if ($user) {
             $user->otp = null;
             $user->email_verified_at = now();
             $user->save();
+
+            $token = JWTAuth::fromUser($user);
+
+            return response()->json([
+                'message' => 'Email is verified',
+                'access_token' => $token,
+                'token_type' => 'bearer',
+                'email_verified_at' => $user->email_verified_at,
+            ], 200);
         }
-        return response()->json(['message' => 'Email is verified'], 200);
+
+        return response()->json(['error' => 'Invalid OTP.'], 400);
     }
-    // update profile
+
+    public function guard()
+    {
+        return Auth::guard('api');
+    }
     public function updateProfile(Request $request)
     {
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
+
         if (!$user) {
             return response()->json(['error' => 'User not authenticated.'], 401);
         }
-        $validator = Validator::make($request->all(), [
+
+        $validatedData = $request->validate([
             'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . $user->id,
             'location' => 'nullable|string|max:255',
+            'password' => 'nullable|string|min:6|confirmed',
+            'image' => 'nullable|array|max:5',
+            'image.*' => 'image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
         if ($request->has('name')) {
-            $user->name = $request->name;
+            $user->name = $validatedData['name'];
+        }
+        if ($request->has('email')) {
+            $user->email = $validatedData['email'];
         }
         if ($request->has('location')) {
-            $user->location = $request->location;
+            $user->location = $validatedData['location'];
+        }
+        if ($request->has('password')) {
+            $user->password = Hash::make($validatedData['password']);
         }
 
-        if ($request->has('password')) {
-            $user->password = bcrypt($request->password);
+        if ($request->has('image')) {
+            $imagePaths = [];
+            foreach ($request->file('image') as $image) {
+                if ($image->isValid()) {
+                    $path = $image->store('profile_images', 'public');
+                    $imagePaths[] = asset('storage/' . $path);
+                } else {
+                    return response()->json(['error' => 'One or more images failed to upload.'], 400);
+                }
+            }
+            $user->image = json_encode($imagePaths);
         }
 
         $user->save();
 
-        return response()->json(['message' => 'Profile updated successfully', 'user' => $user], 200);
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'location' => $user->location,
+                'image' => $user->image ? json_decode($user->image) : null,
+            ],
+        ], 200);
     }
 
     public function changePassword(Request $request)
@@ -212,8 +248,12 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated.'], 401);
+        }
+
         if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json(['error' => 'Current password is incorrect'], 403);
+            return response()->json(['error' => 'Current password is incorrect.'], 403);
         }
 
         $user->password = Hash::make($request->new_password);
@@ -221,6 +261,7 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Password changed successfully']);
     }
+
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -273,4 +314,5 @@ class AuthController extends Controller
         auth('api')->logout();
         return response()->json(['message' => 'Successfully logged out']);
     }
+
 }

@@ -58,8 +58,9 @@ class AdminController extends Controller
     {
         $admin = auth()->user();
         $notifications = $admin->notifications;
+        $admin->unreadNotifications->markAsRead();
 
-        return response()->json(['notifications' => $notifications], 200);
+        return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
     }
 
     // public function showUser()
@@ -116,7 +117,7 @@ class AdminController extends Controller
 
         $question->update(['status' => $validated['status']]);
 
-        return response()->json(['message' => 'Status updated successfully.',$question], 200);
+        return response()->json(['message' => 'Status updated successfully.', $question], 200);
     }
 
     public function deleteQuestion($id)

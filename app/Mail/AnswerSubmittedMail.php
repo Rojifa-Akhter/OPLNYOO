@@ -39,7 +39,7 @@ class AnswerSubmittedMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.submitAnswer', // This view will need to handle an array of answers
+            view: 'email.submitAnswer', // This view will need to handle an array of answers
         );
     }
 
