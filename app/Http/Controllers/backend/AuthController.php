@@ -185,6 +185,7 @@ class AuthController extends Controller
     }
     public function updateProfile(Request $request)
     {
+
         $user = Auth::guard('api')->user();
 
         if (!$user) {
@@ -196,7 +197,7 @@ class AuthController extends Controller
             'email' => 'nullable|email|unique:users,email,' . $user->id,
             'location' => 'nullable|string|max:255',
             'password' => 'nullable|string|min:6|confirmed',
-            'image' => 'nullable|array|max:5',
+            'image' => 'nullable|array|max:2',
             'image.*' => 'image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
 
@@ -224,6 +225,8 @@ class AuthController extends Controller
                 }
             }
             $user->image = json_encode($imagePaths);
+        } elseif (!$request->has('image') && !$user->image) {
+            $user->image = json_encode([]);
         }
 
         $user->save();
@@ -234,7 +237,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'location' => $user->location,
-                'image' => $user->image ? json_decode($user->image) : null,
+                'image' => $user->image ? json_decode($user->image) : [],
             ],
         ], 200);
     }

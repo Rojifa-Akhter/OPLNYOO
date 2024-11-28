@@ -19,7 +19,7 @@ Route::group(['prefix' => 'auth'], function ($router) {
     Route::post('socialLogin', [AuthController::class, 'socialLogin']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('logout', [AuthController::class, 'logout']);
-    Route::put('/profile/update', [AuthController::class, 'updateProfile'])->middleware('auth:api');
+    Route::post('/profile/update', [AuthController::class, 'updateProfile'])->middleware('auth:api');
     Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('auth:api');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password/{token}/{email}', [AuthController::class, 'resetPassword']);

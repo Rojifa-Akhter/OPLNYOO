@@ -203,9 +203,10 @@ class OwnerController extends Controller
         $owner_id = auth()->id();
 
         $privacy = privacy::create([
+            'owner_id' => $owner_id,
             'title' => $request->title,
             'description' => $request->description,
-            'owner_id' => $owner_id,
+
         ]);
 
         return response()->json(['message' => $privacy], 201);
