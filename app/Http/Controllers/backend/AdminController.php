@@ -63,19 +63,13 @@ class AdminController extends Controller
         return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
     }
 
-    // public function showUser()
-    // {
-    //     $users = User::all();
-    //     $users = User::paginate(10);
-    //     return response()->json(['data' => $users], 200);
-    // }
-    //show user and page
     public function showUser(Request $request)
     {
         $search = $request->input('search');
+        $admin = auth()->user();
 
-        $ownersQuery = User::where('role', 'OWNER');
-        $usersQuery = User::where('role', 'USER');
+        $ownersQuery = User::where('role', 'OWNER')->where('id', '!=', $admin->id);
+        $usersQuery = User::where('role', 'USER')->where('id', '!=', $admin->id);
 
         if ($search) {
             $ownersQuery->where(function ($query) use ($search) {
@@ -88,14 +82,15 @@ class AdminController extends Controller
                     ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
-        $owners = $ownersQuery->paginate(10, ['*'], 'owners_page');
-        $users = $usersQuery->paginate(10, ['*'], 'users_page');
+        $owners = $ownersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
+        $users = $usersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
 
         $response = [];
 
         if ($owners->isEmpty()) {
             $response['owners_message'] = "There is no one by this name.";
         } else {
+
             $response['owners'] = $owners;
         }
 
@@ -104,6 +99,7 @@ class AdminController extends Controller
         } else {
             $response['users'] = $users;
         }
+
         return response()->json($response, 200);
     }
 
