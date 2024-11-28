@@ -4,6 +4,7 @@ namespace App\Http\Controllers\backend;
 
 use App\Http\Controllers\Controller;
 use App\Mail\AnswerSubmittedMail;
+use App\Models\privacy;
 use App\Models\Question;
 use App\Models\User;
 use App\Models\userAnswer;
@@ -180,8 +181,7 @@ class OwnerController extends Controller
             ->where('id', $ownerId)
             ->first();
 
-            $images=json_decode($owner->image,true);
-
+        $images = json_decode($owner->image, true);
 
         if (!$owner) {
             return response()->json([
@@ -197,6 +197,24 @@ class OwnerController extends Controller
                 'description' => $owner->description,
             ],
         ], 200);
+    }
+    public function privacy(Request $request)
+    {
+        $owner_id = auth()->id();
+
+        $privacy = privacy::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'owner_id' => $owner_id,
+        ]);
+
+        return response()->json(['message' => $privacy], 201);
+    }
+
+    public function privacyView()
+    {
+        $privacy = privacy::all();
+        return response()->json(['message' => $privacy], 200);
     }
 
 }

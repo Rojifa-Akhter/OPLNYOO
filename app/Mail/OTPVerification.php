@@ -8,13 +8,14 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Http\Middleware\checkAdmin;
-use App\Http\Middleware\checkOwner;
 
-class sendOtp extends Mailable
+class OTPVerification extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * Create a new message instance.
+     */
     public $otp;
     public function __construct($otp)
     {
@@ -27,7 +28,7 @@ class sendOtp extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Send Otp',
+            subject: 'OTP Verification',
         );
     }
 
@@ -37,7 +38,7 @@ class sendOtp extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.otp',
+            view: 'email.otp',
         );
     }
 

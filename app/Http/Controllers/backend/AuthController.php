@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\backend;
 
-use App\Http\Controllers\Controller;
-use App\Mail\sendOtp;
-use App\Models\User;
 use Exception;
+use App\Models\User;
+use PharIo\Manifest\Url;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Mail\OTPVerification;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use PharIo\Manifest\Url;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -57,7 +57,7 @@ class AuthController extends Controller
         ]);
 
         try {
-            Mail::to($user->email)->send(new sendOtp($otp));
+            Mail::to($user->email)->send(new OTPVerification($otp));
         } catch (Exception $e) {
             Log::error($e->getMessage());
         }

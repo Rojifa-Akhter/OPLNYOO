@@ -1,5 +1,6 @@
 <?php
 
+use App\Mail\OTPVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\backend\AuthController;
@@ -47,6 +48,7 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
 
     Route::get('/view-answers', [OwnerController::class, 'viewSubmittedAnswers']);
     Route::delete('/delete-answers/{id}', [OwnerController::class, 'deleteSubmittedAnswers']);
+    Route::post('/privacy', [OwnerController::class, 'privacy']);
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
@@ -54,6 +56,11 @@ Route::middleware(['auth:api', 'USER'])->group(function () {
     Route::get('/survey', [OwnerController::class, 'survey']);
     Route::get('/companylist', [OwnerController::class, 'companylist']);
     Route::get('/company-details/{ownerId}', [OwnerController::class, 'companyDetails']);
+    Route::get('/privacyView', [OwnerController::class, 'privacyView']);
+});
+
+Route::get('demo_mail',function(){
+Mail::to('demo@gmail.com');
 });
 
 
