@@ -82,54 +82,27 @@ class AdminController extends Controller
                     ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
+
         $owners = $ownersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
         $users = $usersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
 
 
-        $defaultAvatar = 'https://t4.ftcdn.net/jpg/06/43/68/65/240_F_643686558_Efl6HB1ITw98bx1PdAd1wy56QpUTMh47.jpg';
+
 
         $response = [];
 
-        // Owners
+
         if ($owners->isEmpty()) {
             $response['owners_message'] = "There is no one by this name.";
         } else {
-            $response['owners'] = $owners->map(function ($owner) use ($defaultAvatar) {
-                return [
-                    'id' => $owner->id,
-                    'name' => $owner->name,
-                    'email' => $owner->email,
-                    'role' => $owner->role,
-                    'location' => $owner->location,
-                    'image' => $owner->image ?? $defaultAvatar,
-                    'description' => $owner->description,
-                ];
-            });
-            $response['owners_pagination'] = [
-                'current_page' => $owners->currentPage(),
-                'next_page_url' => $owners->nextPageUrl(),
-            ];
+            $response['owners'] = $owners;
         }
 
-        // Users
+
         if ($users->isEmpty()) {
             $response['users_message'] = "There is no one by this name.";
         } else {
-            $response['users'] = $users->map(function ($user) use ($defaultAvatar) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'location' => $user->location,
-                    'image' => $user->image ?? $defaultAvatar,
-                    'description' => $user->description,
-                ];
-            });
-            $response['users_pagination'] = [
-                'current_page' => $users->currentPage(),
-                'next_page_url' => $users->nextPageUrl(),
-            ];
+            $response['users'] = $users;
         }
 
         return response()->json($response, 200);

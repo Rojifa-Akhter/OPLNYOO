@@ -21,8 +21,9 @@ Route::group(['prefix' => 'auth'], function ($router) {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('/profile/update', [AuthController::class, 'updateProfile'])->middleware('auth:api');
     Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('auth:api');
-    Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password/{token}/{email}', [AuthController::class, 'resetPassword']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 
 });
 
@@ -47,6 +48,7 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
 
     Route::get('/view-answers', [OwnerController::class, 'viewSubmittedAnswers']);
+    Route::get('/getNotifications', [OwnerController::class, 'getNotifications']);
     Route::delete('/delete-answers/{id}', [OwnerController::class, 'deleteSubmittedAnswers']);
     Route::post('/privacy', [OwnerController::class, 'privacy']);
 

@@ -23,9 +23,10 @@ class AnswerSubmittedMail extends Mailable
         $this->userAnswers = $userAnswers; // Accepting array of userAnswers
     }
 
-    /**
-     * Get the message envelope.
-     */
+    public function via($notifiable)
+    {
+        return ['mail', 'database'];
+    }
     public function envelope(): Envelope
     {
         return new Envelope(

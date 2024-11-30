@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use PharIo\Manifest\Url;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
@@ -34,7 +33,7 @@ class AuthController extends Controller
         $imagePath = null;
         if ($request->has('image')) {
             $image = $request->file('image');
-            $path = $image->store('profile_images', 'public'); 
+            $path = $image->store('profile_images', 'public');
             $imagePath = asset('storage/' . $path);
         }
 
@@ -264,38 +263,46 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $token = rand(1, 7998989898);
-        $email = $request->email;
-        $exist = DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-        DB::table('password_reset_tokens')->insert([
-            'email' => $email,
-            'token' => $token,
-            'created_at' => now(),
-        ]);
+        $user = User::where('email', $request->email)->first();
 
-        $resetUrl = url('api/reset-password/' . $token . '/' . $email);
+        if (!$user) {
+            return response()->json(['error' => 'Email not registered.'], 404);
+        }
+        $otp = rand(100000, 999999);
 
-        return response()->json(['reset_url' => $resetUrl]);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            ['token' => $otp, 'created_at' => now()]
+        );
+
+        try {
+            Mail::to($request->email)->send(new OTPVerification($otp));
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => 'Failed to send OTP.'], 500);
+        }
+
+        return response()->json(['message' => 'OTP sent to your email.'], 200);
     }
-
-    public function resetPassword(Request $request, $token, $email)
+    public function resetPassword(Request $request)
     {
-
         $request->validate([
-            'password' => 'required|min:6|confirmed',
+            'email' => 'required|email',
+            'otp' => 'required|numeric',
+            'password' => 'required|string|min:6|confirmed',
         ]);
 
         $tokenData = DB::table('password_reset_tokens')
-            ->where('token', $token)
-            ->where('email', $email)
+            ->where('email', $request->email)
+            ->where('token', $request->otp)
+            ->where('created_at', '>=', now()->subMinutes(15))
             ->first();
 
         if (!$tokenData) {
-            return response()->json(['error' => 'Invalid token or email.'], 400);
+            return response()->json(['error' => 'Invalid or expired OTP.'], 400);
         }
 
-        $user = User::where('email', $email)->first();
-
+        $user = User::where('email', $request->email)->first();
         if (!$user) {
             return response()->json(['error' => 'User not found.'], 404);
         }
@@ -303,8 +310,36 @@ class AuthController extends Controller
         $user->password = bcrypt($request->password);
         $user->save();
 
-        DB::table('password_reset_tokens')->where('email', $email)->delete();
-        return response()->json(['message' => 'Password reset successful.']);
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return response()->json(['message' => 'Password reset successful.'], 200);
+    }
+
+    public function resendOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'Email not registered.'], 404);
+        }
+
+        $otp = rand(100000, 999999);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            ['token' => $otp, 'created_at' => now()]
+        );
+
+        try {
+            Mail::to($request->email)->send(new OTPVerification($otp));
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['error' => 'Failed to resend OTP.'], 500);
+        }
+
+        return response()->json(['message' => 'OTP resent to your email.'], 200);
     }
 
     public function logout()

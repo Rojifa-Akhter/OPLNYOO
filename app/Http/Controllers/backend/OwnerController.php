@@ -8,6 +8,7 @@ use App\Models\privacy;
 use App\Models\Question;
 use App\Models\User;
 use App\Models\userAnswer;
+use App\Notifications\AnswerSubmittedNotification;
 use App\Notifications\QuestionForm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -102,6 +103,7 @@ class OwnerController extends Controller
 
         $userId = auth()->id();
         $submittedAnswers = [];
+        $notifyAnswer = [];
 
         foreach ($validated['answers'] as $answerData) {
             $question = Question::findOrFail($answerData['question_id']);
@@ -110,6 +112,7 @@ class OwnerController extends Controller
                     'message' => 'You can only submit answers for approved questions.',
                 ], 400);
             }
+
             $answer = userAnswer::create([
                 'user_id' => $userId,
                 'question_id' => $answerData['question_id'],
@@ -118,18 +121,34 @@ class OwnerController extends Controller
             ]);
 
             $submittedAnswers[] = $answer;
+
+            $notifyAnswer[] = $answer;
         }
 
-        $ownerId = $question->owner_id;
+        $ownerId = $notifyAnswer[0]->owner_id;
         $owner = User::find($ownerId);
+
         if ($owner) {
+
             Mail::to($owner->email)->send(new AnswerSubmittedMail(auth()->user(), $submittedAnswers));
+
+            foreach ($notifyAnswer as $question) {
+                $owner->notify(new AnswerSubmittedNotification(auth()->user(), $submittedAnswers));
+            }
         }
 
         return response()->json([
             'message' => 'Answers Submitted Successfully',
             'data' => $submittedAnswers,
         ], 201);
+    }
+    public function getNotifications()
+    {
+        $owner = auth()->user();
+        $notifications = $owner->notifications;
+        $owner->unreadNotifications->markAsRead();
+
+        return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
     }
     public function survey()
     {
@@ -158,21 +177,21 @@ class OwnerController extends Controller
     }
     public function companylist()
     {
-        $owners = User::select('name', 'location')->where('role', 'OWNER')->get();
-
+        $owners = User::select('name', 'location')
+            ->where('role', 'OWNER')
+            ->paginate(10);
         if ($owners->isEmpty()) {
             return response()->json([
                 'message' => 'No owners found.',
             ], 404);
         }
-        $companyList = $owners->map(function ($owner) {
-            return "{$owner->name} - {$owner->location}";
-        });
 
         return response()->json([
-            'owner_list' => $companyList,
+            'owner_list' => $owners,
+
         ], 200);
     }
+
     public function companyDetails($ownerId)
     {
         $owner = User::select('image', 'name', 'location', 'description')
