@@ -85,22 +85,55 @@ class AdminController extends Controller
         $owners = $ownersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
         $users = $usersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
 
+
+        $defaultAvatar = 'https://picsum.photos/id/237/200/300';
+
         $response = [];
 
+        // Owners
         if ($owners->isEmpty()) {
             $response['owners_message'] = "There is no one by this name.";
         } else {
-
-            $response['owners'] = $owners;
+            $response['owners'] = $owners->map(function ($owner) use ($defaultAvatar) {
+                return [
+                    'id' => $owner->id,
+                    'name' => $owner->name,
+                    'email' => $owner->email,
+                    'role' => $owner->role,
+                    'location' => $owner->location,
+                    'image' => $owner->image ?? $defaultAvatar,
+                    'description' => $owner->description,
+                ];
+            });
+            $response['owners_pagination'] = [
+                'current_page' => $owners->currentPage(),
+                'next_page_url' => $owners->nextPageUrl(),
+            ];
         }
 
+        // Users
         if ($users->isEmpty()) {
-            $response['users_message'] = "There is no one by this name";
+            $response['users_message'] = "There is no one by this name.";
         } else {
-            $response['users'] = $users;
+            $response['users'] = $users->map(function ($user) use ($defaultAvatar) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'location' => $user->location,
+                    'image' => $user->image ?? $defaultAvatar,
+                    'description' => $user->description,
+                ];
+            });
+            $response['users_pagination'] = [
+                'current_page' => $users->currentPage(),
+                'next_page_url' => $users->nextPageUrl(),
+            ];
         }
 
         return response()->json($response, 200);
+
     }
 
     public function updateStatus(Request $request, $id)
