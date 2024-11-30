@@ -175,13 +175,10 @@ class OwnerController extends Controller
     }
     public function companyDetails($ownerId)
     {
-
         $owner = User::select('image', 'name', 'location', 'description')
             ->where('role', 'OWNER')
             ->where('id', $ownerId)
             ->first();
-
-        $images = json_decode($owner->image, true);
 
         if (!$owner) {
             return response()->json([
@@ -189,15 +186,18 @@ class OwnerController extends Controller
             ], 404);
         }
 
+        $image = $owner->image ?: 'https://t4.ftcdn.net/jpg/06/43/68/65/240_F_643686558_Efl6HB1ITw98bx1PdAd1wy56QpUTMh47.jpg';
+
         return response()->json([
             'ownerDetails' => [
-                'image' => $images,
+                'image' => $image,
                 'name' => $owner->name,
                 'location' => $owner->location,
                 'description' => $owner->description,
             ],
         ], 200);
     }
+
     public function privacy(Request $request)
     {
         $owner_id = auth()->id();

@@ -86,7 +86,7 @@ class AdminController extends Controller
         $users = $usersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
 
 
-        $defaultAvatar = 'https://picsum.photos/id/237/200/300';
+        $defaultAvatar = 'https://t4.ftcdn.net/jpg/06/43/68/65/240_F_643686558_Efl6HB1ITw98bx1PdAd1wy56QpUTMh47.jpg';
 
         $response = [];
 
