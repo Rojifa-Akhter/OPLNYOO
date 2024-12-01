@@ -2,40 +2,51 @@
 
 namespace App\Http\Controllers\backend;
 
-use App\Http\Controllers\Controller;
-use App\Models\Question;
 use App\Models\User;
+use App\Models\Question;
 use App\Models\userAnswer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Notifications\NewOwnerNotification;
 
 class AdminController extends Controller
 {
     public function ownerCreate(Request $request)
-    {
-        $validator = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-        $imagePaths = [];
-        if ($request->has('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('img', 'public');
-                $imagePaths[] = asset('storage/' . $path);
-            }
-        }
-        $owner = User::create([
-            'name' => $validator['name'],
-            'images' => json_encode($imagePaths),
-            'email' => $validator['email'],
-            'role' => 'OWNER',
-            'location' => $request->location ?? null,
-            'password' => bcrypt($validator['password']),
-        ]);
-        $owner->save();
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|unique:users,email',
+        'password' => 'required|string|min:6|confirmed',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+    ]);
 
-        return response()->json(['message' => 'Owner create successfully', 'owner' => $owner], 201);
+    $imagePath = null;
+        if ($request->has('image')) {
+            $image = $request->file('image');
+            $path = $image->store('profile_images', 'public');
+            $imagePath = asset('storage/' . $path);
+        }
+
+
+    $owner = User::create([
+        'name' => $request->name,
+        'image' => $imagePath,
+        'email' => $request->email,
+        'role' => 'OWNER',
+        'location' => $request->location ?? null,
+        'password' => bcrypt($request->password),
+    ]);
+
+    // Notify users
+    $users = User::where('role', 'USER')->get();
+    foreach ($users as $user) {
+        $user->notify(new NewOwnerNotification($owner));
     }
+
+    return response()->json(['message' => 'Owner created successfully', 'owner' => $owner], 201);
+}
+
     public function deleteUser(Request $request)
     {
         $validated = $request->validate([
@@ -62,7 +73,6 @@ class AdminController extends Controller
 
         return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
     }
-
     public function showUser(Request $request)
     {
         $search = $request->input('search');
@@ -86,18 +96,26 @@ class AdminController extends Controller
         $owners = $ownersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
         $users = $usersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate(10);
 
+        // Default avatar image URL
+        $defaultAvatar = 'https://img.freepik.com/free-vector/young-man-glasses-hoodie_1308-174658.jpg?ga=GA1.1.989225147.1732941118&semt=ais_hybrid';
 
+        $owners->getCollection()->transform(function ($owner) use ($defaultAvatar) {
+            $owner->image = $owner->image ?: $defaultAvatar;
+            return $owner;
+        });
 
+        $users->getCollection()->transform(function ($user) use ($defaultAvatar) {
+            $user->image = $user->image ?: $defaultAvatar;
+            return $user;
+        });
 
         $response = [];
-
 
         if ($owners->isEmpty()) {
             $response['owners_message'] = "There is no one by this name.";
         } else {
             $response['owners'] = $owners;
         }
-
 
         if ($users->isEmpty()) {
             $response['users_message'] = "There is no one by this name.";
@@ -106,8 +124,8 @@ class AdminController extends Controller
         }
 
         return response()->json($response, 200);
-
     }
+
 
     public function updateStatus(Request $request, $id)
     {

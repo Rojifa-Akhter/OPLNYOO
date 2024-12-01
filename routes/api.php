@@ -51,14 +51,17 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::get('/getNotifications', [OwnerController::class, 'getNotifications']);
     Route::delete('/delete-answers/{id}', [OwnerController::class, 'deleteSubmittedAnswers']);
     Route::post('/privacy', [OwnerController::class, 'privacy']);
+    Route::post('/termsCondition', [OwnerController::class, 'termsCondition']);
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
     Route::post('/submit-answers', [OwnerController::class, 'submitAnswers']);
+    Route::get('/getUserNotifications', [OwnerController::class, 'getUserNotifications']);
     Route::get('/survey', [OwnerController::class, 'survey']);
     Route::get('/companylist', [OwnerController::class, 'companylist']);
     Route::get('/company-details/{ownerId}', [OwnerController::class, 'companyDetails']);
     Route::get('/privacyView', [OwnerController::class, 'privacyView']);
+    Route::get('/termsConditionView', [OwnerController::class, 'termsConditionView']);
 });
 
 Route::get('demo_mail',function(){

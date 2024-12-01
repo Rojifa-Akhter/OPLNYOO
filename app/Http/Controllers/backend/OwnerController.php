@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Mail\AnswerSubmittedMail;
 use App\Models\privacy;
 use App\Models\Question;
+use App\Models\termsConditions;
 use App\Models\User;
 use App\Models\userAnswer;
 use App\Notifications\AnswerSubmittedNotification;
+use App\Notifications\NewQuestionNotification;
 use App\Notifications\QuestionForm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -45,12 +47,18 @@ class OwnerController extends Controller
                     'owner_id' => auth()->id(),
                 ]);
 
+                // Notify the admin
                 $admin = User::where('role', 'admin')->first();
                 if ($admin) {
                     $admin->notify(new QuestionForm($question));
                 }
-            } else {
 
+                // Notify all users
+                $users = User::where('role', 'USER')->get();
+                foreach ($users as $user) {
+                    $user->notify(new NewQuestionNotification($question));
+                }
+            } else {
                 $question = $existingQuestion;
             }
 
@@ -58,7 +66,7 @@ class OwnerController extends Controller
         }
 
         return response()->json([
-            'message' => 'Questions Processed Successfully',
+            'message' => 'Questions Processed Successfully, notifications sent to admin and users.',
             'data' => $questions,
         ], 201);
     }
@@ -91,6 +99,41 @@ class OwnerController extends Controller
         $answers->delete();
         return response()->json(["message" => "Submitted Answer Delete Successfully"]);
     }
+    public function privacy(Request $request)
+    {
+        $owner_id = auth()->id();
+
+        $privacy = privacy::create([
+            'owner_id' => $owner_id,
+            'title' => $request->title,
+            'description' => $request->description,
+
+        ]);
+
+        return response()->json(['message' => $privacy], 201);
+    }
+    public function termsCondition(Request $request)
+    {
+        $owner_id = auth()->id();
+
+        $termsCndition = termsConditions::create([
+            'owner_id' => $owner_id,
+            'title' => $request->title,
+            'description' => $request->description,
+
+        ]);
+
+        return response()->json(['message' => $termsCndition], 201);
+    }
+    // user submitted answer get it owner
+    public function getNotifications()
+    {
+        $owner = auth()->user();
+        $notifications = $owner->notifications;
+        $owner->unreadNotifications->markAsRead();
+
+        return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
+    }
     // submit answer for users
     public function submitAnswers(Request $request)
     {
@@ -103,7 +146,6 @@ class OwnerController extends Controller
 
         $userId = auth()->id();
         $submittedAnswers = [];
-        $notifyAnswer = [];
 
         foreach ($validated['answers'] as $answerData) {
             $question = Question::findOrFail($answerData['question_id']);
@@ -121,20 +163,17 @@ class OwnerController extends Controller
             ]);
 
             $submittedAnswers[] = $answer;
-
-            $notifyAnswer[] = $answer;
         }
 
-        $ownerId = $notifyAnswer[0]->owner_id;
+        // Notify the owner
+        $ownerId = $question->owner_id; // Fetch the owner from the Question model
         $owner = User::find($ownerId);
 
         if ($owner) {
 
             Mail::to($owner->email)->send(new AnswerSubmittedMail(auth()->user(), $submittedAnswers));
 
-            foreach ($notifyAnswer as $question) {
-                $owner->notify(new AnswerSubmittedNotification(auth()->user(), $submittedAnswers));
-            }
+            $owner->notify(new AnswerSubmittedNotification(auth()->user(), $submittedAnswers));
         }
 
         return response()->json([
@@ -142,11 +181,12 @@ class OwnerController extends Controller
             'data' => $submittedAnswers,
         ], 201);
     }
-    public function getNotifications()
+// owner create question
+    public function getUserNotifications()
     {
-        $owner = auth()->user();
-        $notifications = $owner->notifications;
-        $owner->unreadNotifications->markAsRead();
+        $user = auth()->user();
+        $notifications = $user->notifications;
+        $user->unreadNotifications->markAsRead();
 
         return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
     }
@@ -215,26 +255,40 @@ class OwnerController extends Controller
                 'description' => $owner->description,
             ],
         ], 200);
-    }
 
-    public function privacy(Request $request)
-    {
-        $owner_id = auth()->id();
-
-        $privacy = privacy::create([
-            'owner_id' => $owner_id,
-            'title' => $request->title,
-            'description' => $request->description,
-
-        ]);
-
-        return response()->json(['message' => $privacy], 201);
     }
 
     public function privacyView()
-    {
-        $privacy = privacy::all();
-        return response()->json(['message' => $privacy], 200);
-    }
+{
+    $privacy = Privacy::with('owner:id,name')->whereNotNull('owner_id')->get();
+
+    $privacyWithOwnerName = $privacy->map(function ($item) {
+        return [
+            'id' => $item->id,
+            'title' => $item->title,
+            'description' => $item->description,
+            'owner_name' => optional($item->owner)->name ?? 'Unknown Owner',
+        ];
+    });
+
+    return response()->json(['message' => $privacyWithOwnerName], 200);
+}
+
+public function termsConditionView()
+{
+    $termsCondition = termsConditions::with('owner:id,name')->whereNotNull('owner_id')->get();
+
+    $termsWithOwnerName = $termsCondition->map(function ($item) {
+        return [
+            'id' => $item->id,
+            'title' => $item->title,
+            'description' => $item->description,
+            'owner_name' => optional($item->owner)->name ?? 'Unknown Owner',
+        ];
+    });
+
+    return response()->json(['message' => $termsWithOwnerName], 200);
+}
+
 
 }
