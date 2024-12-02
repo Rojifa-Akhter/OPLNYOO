@@ -52,6 +52,7 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::delete('/delete-answers/{id}', [OwnerController::class, 'deleteSubmittedAnswers']);
     Route::post('/privacy', [OwnerController::class, 'privacy']);
     Route::post('/termsCondition', [OwnerController::class, 'termsCondition']);
+    Route::post('/about', [OwnerController::class, 'about']);
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
@@ -62,10 +63,9 @@ Route::middleware(['auth:api', 'USER'])->group(function () {
     Route::get('/company-details/{ownerId}', [OwnerController::class, 'companyDetails']);
     Route::get('/privacyView', [OwnerController::class, 'privacyView']);
     Route::get('/termsConditionView', [OwnerController::class, 'termsConditionView']);
+    Route::get('/aboutView', [OwnerController::class, 'aboutView']);
 });
 
-Route::get('demo_mail',function(){
-Mail::to('demo@gmail.com');
-});
+
 
 

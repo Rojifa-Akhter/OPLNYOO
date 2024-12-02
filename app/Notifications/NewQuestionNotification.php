@@ -10,48 +10,27 @@ class NewQuestionNotification extends Notification
     use Queueable;
 
     public $question;
-    public function __construct($question)
+    public $ownerName;
+
+    public function __construct($question, $ownerName)
     {
         $this->question = $question;
+        $this->ownerName = $ownerName;  // Store the owner's name
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['database'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
-    // public function toMail(object $notifiable): MailMessage
-    // {
-    //     return (new MailMessage)
-    //                 ->line('The introduction to the notification.')
-    //                 ->action('Notification Action', url('/'))
-    //                 ->line('Thank you for using our application!');
-    // }
-
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
-        $ownerName = $this->question->user ? $this->question->user->name : 'Unknown';
-
         return [
             'question_id' => $this->question->id,
             'question' => $this->question->question,
             'owner_id' => $this->question->owner_id,
-            'owner_name' => $ownerName,
-            'message' => "A new question has been created by {$ownerName}.",
+            'owner_name' => $this->ownerName,  // Include the owner's name in the notification data
+            'message' => "A new question has been created by {$this->ownerName}.",  // Message includes owner's name
         ];
     }
-
 }
