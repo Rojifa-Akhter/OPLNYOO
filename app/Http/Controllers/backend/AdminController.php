@@ -62,15 +62,51 @@ class AdminController extends Controller
 
         return response()->json(['message' => $deletedUsers], 200);
     }
-    //question form related
+    //question form notification
     public function getAdminNotifications()
     {
-        $admin = auth()->user();
-        $notifications = $admin->notifications;
-        $admin->unreadNotifications->markAsRead();
+        $perPage = request()->query('per_page', 15);
 
-        return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
+        if ($perPage <= 0) {
+            return response()->json([
+                'message' => "'per_page' must be a positive number.",
+            ], 400);
+        }
+
+        $admin = auth()->user();
+        $notifications = $admin->notifications()->paginate($perPage);
+
+        $formattedNotifications = collect($notifications->items())->map(function ($notification) {
+            return [
+                'id' => $notification->id, // Add notification ID
+                'message' => $notification->data['message'] ?? 'No message available',
+                'read_at' => $notification->read_at,
+            ];
+        });
+
+        return response()->json([
+            'notifications' => $formattedNotifications,
+        ], 200);
     }
+    public function markAdminNotificationAsRead($id)
+    {
+        $owner = auth()->user();
+        $notification = $owner->notifications()->find($id);
+
+        if (!$notification) {
+            return response()->json([
+                'message' => 'Notification not found or does not belong to the user.',
+            ], 404);
+        }
+
+        $notification->markAsRead();
+
+        return response()->json([
+            'message' => 'Notification marked as read successfully.',
+            'notification_id' => $id,
+        ], 200);
+    }
+
     public function showUser(Request $request)
     {
         $perPage = request()->query('per_page', 15);

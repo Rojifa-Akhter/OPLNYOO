@@ -22,8 +22,10 @@ Route::group(['prefix' => 'auth'], function ($router) {
     Route::post('/profile/update', [AuthController::class, 'updateProfile'])->middleware('auth:api');
     Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('auth:api');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/verifyOtp', [AuthController::class, 'verifyOtp']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
+    Route::get('/userData', [AuthController::class, 'userData']);
 
 });
 
@@ -34,6 +36,7 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
     Route::get('/showSoftDeletedUsers', [AdminController::class, 'SoftDeletedUsers']);
     Route::get('/showUser', [AdminController::class, 'showUser']);
     Route::get('/notifications', [AdminController::class, 'getAdminNotifications']);
+    Route::patch('/Notifications/{id}', [AdminController::class, 'markAdminNotificationAsRead']);
     Route::post('/updateStatus/{id}', [AdminController::class, 'updateStatus']);
     Route::delete('/deleteQuestion/{id}', [AdminController::class, 'deleteQuestion']);
     Route::get('/dashboard-statistics', [AdminController::class, 'getDashboardStatistics']);
@@ -47,17 +50,24 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::post('/questionCreate', [OwnerController::class, 'questionCreate']);
     Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
 
-    Route::get('/view-answers', [OwnerController::class, 'viewSubmittedAnswers']);
-    Route::get('/getNotifications', [OwnerController::class, 'getNotifications']);
-    Route::delete('/delete-answers/{id}', [OwnerController::class, 'deleteSubmittedAnswers']);
+
     Route::post('/privacy', [OwnerController::class, 'privacy']);
     Route::post('/termsCondition', [OwnerController::class, 'termsCondition']);
     Route::post('/about', [OwnerController::class, 'about']);
+    Route::get('/dashboard-statistics', [OwnerController::class, 'getOwnerStatistics']);
+    Route::get('/feedbackforms', [OwnerController::class, 'viewFeedbackAnswers']);
+    Route::get('/getNotifications', [OwnerController::class, 'getNotifications']);
+    Route::post('/notifications/{id}', [OwnerController::class, 'markNotificationAsRead']);
+    Route::get('/viewAnswers', [OwnerController::class, 'viewUserSubmittedAnswers']);
+    Route::delete('/delete-answers/{id}', [OwnerController::class, 'deleteSubmittedAnswers']);
+
+
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
     Route::post('/submit-answers', [OwnerController::class, 'submitAnswers']);
     Route::get('/getUserNotifications', [OwnerController::class, 'getUserNotifications']);
+    Route::patch('/userNotifications/{id}', [OwnerController::class, 'markNotificationAsRead']);
     Route::get('/survey', [OwnerController::class, 'survey']);
     Route::get('/companylist', [OwnerController::class, 'companylist']);
     Route::get('/company-details/{ownerId}', [OwnerController::class, 'companyDetails']);

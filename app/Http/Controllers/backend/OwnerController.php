@@ -19,61 +19,60 @@ use Illuminate\Support\Facades\Mail;
 class OwnerController extends Controller
 {
     public function questionCreate(Request $request)
-{
-    $validated = $request->validate([
-        'questions' => 'required|array',
-        'questions.*.question' => 'required|string',
-        'questions.*.answer_type' => 'required|in:multiple,checkbox,short_answer',
-        'questions.*.options' => 'nullable|array',
-        'questions.*.options.*' => 'string',
-    ]);
+    {
+        $validated = $request->validate([
+            'questions' => 'required|array',
+            'questions.*.question' => 'required|string',
+            'questions.*.answer_type' => 'required|in:multiple,checkbox,short_answer',
+            'questions.*.options' => 'nullable|array',
+            'questions.*.options.*' => 'string',
+        ]);
 
-    $questions = [];
-    $owner = auth()->user();
+        $questions = [];
+        $owner = auth()->user();
 
-    foreach ($validated['questions'] as $questionData) {
-        $options = null;
-        if (in_array($questionData['answer_type'], ['multiple', 'checkbox']) && !empty($questionData['options'])) {
-            $options = json_encode($questionData['options']);
-        }
-
-        $existingQuestion = Question::where('question', $questionData['question'])
-            ->where('answer_type', $questionData['answer_type'])
-            ->where('owner_id', $owner->id)
-            ->first();
-
-        if (!$existingQuestion) {
-            $question = Question::updateOrCreate([
-                'question' => $questionData['question'],
-                'answer_type' => $questionData['answer_type'],
-                'options' => $options,
-                'owner_id' => $owner->id,
-            ]);
-
-            // Notify the admin
-            $admin = User::where('role', 'admin')->first();
-            if ($admin) {
-                $admin->notify(new QuestionForm($question));
+        foreach ($validated['questions'] as $questionData) {
+            $options = null;
+            if (in_array($questionData['answer_type'], ['multiple', 'checkbox']) && !empty($questionData['options'])) {
+                $options = json_encode($questionData['options']);
             }
 
-            // Notify all users with the owner's name
-            $users = User::where('role', 'USER')->get();
-            foreach ($users as $user) {
-                $user->notify(new NewQuestionNotification($question, $owner->name));
+            $existingQuestion = Question::where('question', $questionData['question'])
+                ->where('answer_type', $questionData['answer_type'])
+                ->where('owner_id', $owner->id)
+                ->first();
+
+            if (!$existingQuestion) {
+                $question = Question::updateOrCreate([
+                    'question' => $questionData['question'],
+                    'answer_type' => $questionData['answer_type'],
+                    'options' => $options,
+                    'owner_id' => $owner->id,
+                ]);
+
+                // Notify the admin
+                $admin = User::where('role', 'admin')->first();
+                if ($admin) {
+                    $admin->notify(new QuestionForm($question));
+                }
+
+                // Notify all users with the owner's name
+                $users = User::where('role', 'USER')->get();
+                foreach ($users as $user) {
+                    $user->notify(new NewQuestionNotification($question, $owner->name));
+                }
+            } else {
+                $question = $existingQuestion;
             }
-        } else {
-            $question = $existingQuestion;
+
+            $questions[] = $question;
         }
 
-        $questions[] = $question;
+        return response()->json([
+            'message' => 'Questions Processed Successfully, notifications sent to admin and users.',
+            'data' => $questions,
+        ], 201);
     }
-
-    return response()->json([
-        'message' => 'Questions Processed Successfully, notifications sent to admin and users.',
-        'data' => $questions,
-    ], 201);
-}
-
 
     public function questionDelete($id)
     {
@@ -82,27 +81,7 @@ class OwnerController extends Controller
         $question->delete();
         return response()->json(['message' => 'Question Delete Successfully'], 200);
     }
-    //view answer
-    public function viewSubmittedAnswers()
-    {
-        $ownerId = auth()->id();
 
-        $questions = Question::with(['answers', 'submittedAnswers.user'])
-            ->where('owner_id', $ownerId)
-            ->get();
-
-        return response()->json(
-            ['question' => $questions], 200);
-    }
-    public function deleteSubmittedAnswers($id)
-    {
-        $ownerId = auth()->id();
-
-        $answers = userAnswer::findOrFail($id);
-
-        $answers->delete();
-        return response()->json(["message" => "Submitted Answer Delete Successfully"]);
-    }
     public function privacy(Request $request)
     {
         $owner_id = auth()->id();
@@ -142,23 +121,7 @@ class OwnerController extends Controller
 
         return response()->json(['message' => $aboutUs], 201);
     }
-    // user submitted answer get it owner
-    public function getNotifications()
-    {
-        $perPage = request()->query('per_page', 15);
 
-        if ($perPage <= 0) {
-            return response()->json([
-                'message' => "'per_page' must be a positive number.",
-            ], 400);
-        }
-
-        $owner = auth()->user();
-        $notifications = $owner->notifications->paginate($perPage);
-        $owner->unreadNotifications->markAsRead();
-
-        return response()->json(['notifications' => 'Notifications marked as read.', $notifications], 200);
-    }
     // submit answer for users
     public function submitAnswers(Request $request)
     {
@@ -219,20 +182,36 @@ class OwnerController extends Controller
         $owner = auth()->user();
         $notifications = $owner->notifications()->paginate($perPage);
 
-        $owner->unreadNotifications->markAsRead();
-
-        // Convert items to a collection and format them
         $formattedNotifications = collect($notifications->items())->map(function ($notification) {
             return [
-                'data' => [
-                    'message' => $notification->data['message'],
-                    'owner_id' => $notification->data['owner_id'],
-                ],
+                'id' => $notification->id, // Add notification ID
+                'message' => $notification->data['message'] ?? 'No message available',
+                'owner_id' => $notification->data['owner_id'] ?? null,
+                'read_at' => $notification->read_at,
             ];
         });
 
         return response()->json([
             'notifications' => $formattedNotifications,
+        ], 200);
+    }
+
+    public function markUserNotificationAsRead($id)
+    {
+        $owner = auth()->user();
+        $notification = $owner->notifications()->find($id);
+
+        if (!$notification) {
+            return response()->json([
+                'message' => 'Notification not found or does not belong to the user.',
+            ], 404);
+        }
+
+        $notification->markAsRead();
+
+        return response()->json([
+            'message' => 'Notification marked as read successfully.',
+            'notification_id' => $id,
         ], 200);
     }
 
@@ -351,6 +330,124 @@ class OwnerController extends Controller
         });
 
         return response()->json(['message' => $aboutWithOwnerName], 200);
+    }
+
+//owner dashboard
+    public function getOwnerStatistics()
+    {
+        // Fetch statistics
+        $totalUsers = User::count();
+        $totalSubmittedAnswers = userAnswer::count();
+
+        // Count answers submitted today
+        $totalAnswersToday = userAnswer::whereDate('created_at', now()->toDateString())->count();
+
+        return response()->json([
+            'total_users' => $totalUsers,
+            'total_submitted_answers' => $totalSubmittedAnswers,
+            'response_by_today' => $totalAnswersToday,
+        ], 200);
+    }
+    public function viewFeedbackAnswers()
+    {
+        $perPage = request()->query('per_page', 15);
+
+        if ($perPage <= 0) {
+            return response()->json(['message' => "'per_page' must be a positive number."], 400);
+        }
+        $feedback = userAnswer::with('user:id,name,email,location')->select('id', 'user_id')->paginate($perPage);
+
+        return response()->json(
+            $feedback, 200);
+    }
+    public function getNotifications()
+    {
+        $owner = auth()->user();
+
+        $notifications = $owner->notifications()->get()->map(function ($notification) {
+            return [
+                'id' => $notification->id,
+                'data' => $notification->data,
+                'read_at' => $notification->read_at,
+            ];
+        });
+
+        return response()->json(['notifications' => $notifications], 200);
+    }
+    public function markNotificationAsRead($notificationId)
+    {
+        $owner = auth()->user();
+
+        $notification = $owner->notifications()->find($notificationId);
+
+        if (!$notification) {
+            return response()->json(['message' => 'Notification not found.'], 404);
+        }
+
+        if (!$notification->read_at) {
+            $notification->markAsRead();
+        }
+
+        return response()->json(['message' => 'Notification marked as read.'], 200);
+    }
+    // view submitted answer and delete answer
+    public function viewUserSubmittedAnswers()
+    {
+        $perPage = request()->query('per_page', 15);
+        $date = request()->query('date');
+
+        if ($perPage <= 0) {
+            return response()->json([
+                'message' => "'per_page' must be a positive number.",
+            ], 400);
+        }
+
+        $query = userAnswer::with('question', 'user');
+
+        if ($date) {
+            $query->whereDate('created_at', '=', $date);
+        }
+
+        $submittedAnswers = $query->paginate($perPage);
+
+        $formattedAnswers = $submittedAnswers->map(function ($answer) {
+
+            $decodedOptions = null;
+            if ($answer->question->answer_type == 'multiple' || $answer->question->answer_type == 'checkbox') {
+                $decodedOptions = json_decode($answer->options);
+            }
+
+            return [
+                'id' => $answer->id,
+                'user_name' => $answer->user->name,
+                'user_email' => $answer->user->email,
+                'user_location' => $answer->user->location,
+                'question' => $answer->question->question,
+                'answer_type' => $answer->question->answer_type,
+                'options' => $decodedOptions,
+                'short_answer' => $answer->short_answer,
+                'submitted_at' => $answer->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return response()->json([
+            'data' => $formattedAnswers,
+            'total_answers' => $submittedAnswers->total(),
+            'pagination' => [
+                'next_page_url' => $submittedAnswers->nextPageUrl(),
+                'prev_page_url' => $submittedAnswers->previousPageUrl(),
+            ],
+        ], 200);
+    }
+
+    public function deleteSubmittedAnswers($id)
+    {
+        $ownerId = auth()->id();
+
+        $answers = userAnswer::findOrFail($id);
+
+        $answers->delete();
+        return response()->json(["message" => "Submitted Answer Delete Successfully"]);
     }
 
 }

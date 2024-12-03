@@ -284,12 +284,11 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'OTP sent to your email.'], 200);
     }
-    public function resetPassword(Request $request)
+    public function verifyOtp(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
             'otp' => 'required|numeric',
-            'password' => 'required|string|min:6|confirmed',
         ]);
 
         $tokenData = DB::table('password_reset_tokens')
@@ -307,10 +306,28 @@ class AuthController extends Controller
             return response()->json(['error' => 'User not found.'], 404);
         }
 
+        $resetToken = JWTAuth::fromUser($user);
+
+        return response()->json([
+            'message' => 'OTP verified successfully.',
+            'reset_token' => $resetToken,
+        ], 200);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['error' => 'User not found.'], 404);
+        }
+
         $user->password = bcrypt($request->password);
         $user->save();
-
-        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
         return response()->json(['message' => 'Password reset successful.'], 200);
     }
@@ -347,5 +364,23 @@ class AuthController extends Controller
         auth('api')->logout();
         return response()->json(['message' => 'Successfully logged out']);
     }
+    public function userData()
+    {
+        $user = User::all()->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'location' => $user->location,
+                'avatar' => $user->avatar ?: url('https://img.freepik.com/free-vector/young-man-glasses-hoodie_1308-174658.jpg?ga=GA1.1.989225147.1732941118&semt=ais_hybrid'), // Default avatar URL
+                'role' => $user->role,
+                'description' => $user->description,
+                'google_id' => $user->google_id,
+           ];
+        });
+
+        return response()->json($user);
+    }
+
 
 }
