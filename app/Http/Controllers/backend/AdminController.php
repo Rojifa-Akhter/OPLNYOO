@@ -138,7 +138,8 @@ class AdminController extends Controller
         $users = $usersQuery->select('id', 'name', 'email', 'role', 'location', 'image', 'description')->paginate($perPage);
 
         // Default avatar image URL
-        $defaultAvatar = 'https://img.freepik.com/free-vector/young-man-glasses-hoodie_1308-174658.jpg?ga=GA1.1.989225147.1732941118&semt=ais_hybrid';
+        $defaultAvatar = asset('img/3.jpg');
+
 
         $owners->getCollection()->transform(function ($owner) use ($defaultAvatar) {
             $owner->image = $owner->image ?: $defaultAvatar;

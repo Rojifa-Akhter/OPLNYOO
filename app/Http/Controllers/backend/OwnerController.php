@@ -260,30 +260,53 @@ class OwnerController extends Controller
     }
 
     public function companyDetails($ownerId)
-    {
-        $owner = User::select('image', 'name', 'location', 'description')
-            ->where('role', 'OWNER')
-            ->where('id', $ownerId)
-            ->first();
+{
+    $owner = User::select('id', 'image', 'name', 'location', 'description')
+        ->where('role', 'OWNER')
+        ->where('id', $ownerId)
+        ->first();
 
-        if (!$owner) {
-            return response()->json([
-                'message' => 'Owner not found.',
-            ], 404);
+    if (!$owner) {
+        return response()->json([
+            'message' => 'Owner not found.',
+        ], 404);
+    }
+
+    // Use default image from the public folder if no image is found
+    $image = $owner->image ? asset('storage/' . $owner->image) : asset('img/3.jpg');
+
+    // Fetch submitted answers for this owner
+    $userId = auth()->id();
+    $submittedAnswers = userAnswer::with(['question'])
+        ->where('user_id', $userId)
+        ->whereHas('question', function ($query) use ($ownerId) {
+            $query->where('owner_id', $ownerId);
+        })
+        ->get();
+
+    $formattedAnswers = $submittedAnswers->map(function ($answer) {
+        $decodedOptions = null;
+        if (in_array($answer->question->answer_type, ['multiple', 'checkbox'])) {
+            $decodedOptions = json_decode($answer->options);
         }
 
-        $image = $owner->image ?: 'https://t4.ftcdn.net/jpg/06/43/68/65/240_F_643686558_Efl6HB1ITw98bx1PdAd1wy56QpUTMh47.jpg';
+        return [
+            'question' => $answer->question->question,
+            'options' => $decodedOptions,
+            'short_answer' => $answer->short_answer,
+        ];
+    });
 
-        return response()->json([
-            'ownerDetails' => [
-                'image' => $image,
-                'name' => $owner->name,
-                'location' => $owner->location,
-                'description' => $owner->description,
-            ],
-        ], 200);
-
-    }
+    return response()->json([
+        'companyDetails' => [
+            'image' => $image,
+            'name' => $owner->name,
+            'location' => $owner->location,
+            'description' => $owner->description,
+        ],
+        'submitted_answers' => $formattedAnswers,
+    ], 200);
+}
 
     public function privacyView()
     {

@@ -366,21 +366,20 @@ class AuthController extends Controller
     }
     public function userData()
     {
-        $user = User::all()->map(function ($user) {
+        $users = User::all()->map(function ($user) {
             return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'location' => $user->location,
-                'avatar' => $user->avatar ?: url('https://img.freepik.com/free-vector/young-man-glasses-hoodie_1308-174658.jpg?ga=GA1.1.989225147.1732941118&semt=ais_hybrid'), // Default avatar URL
+                'avatar' => $user->image ? asset('storage/' . $user->image) : url('/img/3.jpg'),
                 'role' => $user->role,
                 'description' => $user->description,
                 'google_id' => $user->google_id,
-           ];
+            ];
         });
 
-        return response()->json($user);
+        return response()->json($users);
     }
-
 
 }
