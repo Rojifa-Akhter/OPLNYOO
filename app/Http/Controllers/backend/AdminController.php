@@ -8,23 +8,31 @@ use App\Models\User;
 use App\Models\userAnswer;
 use App\Notifications\NewOwnerNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
+    //admin can create owner
     public function ownerCreate(Request $request)
     {
-        $request->validate([
+        $validate = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            // 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
         ]);
 
+        if ($validate->fails()) {
+            return response()->json(['status' => false, 'message' => $validate->errors()]);
+        }
         $imagePath = null;
         if ($request->has('image')) {
             $image = $request->file('image');
             $path = $image->store('profile_images', 'public');
-            $imagePath = asset('storage/' . $path);
+            
+            // $imagePath = asset('storage/' . $path);
         }
 
         $owner = User::create([
@@ -42,25 +50,27 @@ class AdminController extends Controller
             $user->notify(new NewOwnerNotification($owner));
         }
 
-        return response()->json(['message' => 'Owner created successfully', 'owner' => $owner], 201);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Owner created successfully', 'owner' => $owner], 201);
     }
 
     public function deleteUser(Request $request)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-        ]);
-
-        $user = User::findOrFail($validated['user_id']);
+        $user = User::findOrFail('id');
         $user->delete();
 
-        return response()->json(['message' => 'User deleted successfully'], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User deleted successfully'], 200);
     }
     public function SoftDeletedUsers()
     {
         $deletedUsers = User::onlyTrashed()->get();
 
-        return response()->json(['message' => $deletedUsers], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => $deletedUsers], 200);
     }
     //question form notification
     public function getAdminNotifications()
@@ -68,26 +78,51 @@ class AdminController extends Controller
         $perPage = request()->query('per_page', 15);
 
         if ($perPage <= 0) {
+
             return response()->json([
                 'message' => "'per_page' must be a positive number.",
             ], 400);
         }
+        $user = Auth::user();
 
-        $admin = auth()->user();
-        $notifications = $admin->notifications()->paginate($perPage);
+        if ($user->role !== 'ADMIN') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized access. Only admins can view notifications.',
+            ], 403);
+        }
+
+        $notifications = $user->notifications()->paginate($perPage);
+
+        // Count unread notifications
+        $unread = DB::table('notifications')
+            ->where('notifiable_id', $user->id)
+            ->whereNull('read_at')
+            ->count();
+
+        if ($notifications->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No notifications available.',
+            ], 404);
+        }
 
         $formattedNotifications = collect($notifications->items())->map(function ($notification) {
             return [
-                'id' => $notification->id, // Add notification ID
+                'id' => $notification->id,
                 'message' => $notification->data['message'] ?? 'No message available',
                 'read_at' => $notification->read_at,
             ];
         });
 
+        // Return the formatted notifications with unread count
         return response()->json([
+            'status' => 'success',
+            'unread_notification' => $unread,
             'notifications' => $formattedNotifications,
         ], 200);
     }
+
     public function markAdminNotificationAsRead($id)
     {
         $owner = auth()->user();
@@ -102,6 +137,7 @@ class AdminController extends Controller
         $notification->markAsRead();
 
         return response()->json([
+            'status'=>'success',
             'message' => 'Notification marked as read successfully.',
             'notification_id' => $id,
         ], 200);
@@ -109,6 +145,7 @@ class AdminController extends Controller
 
     public function showUser(Request $request)
     {
+
         $perPage = request()->query('per_page', 15);
 
         if ($perPage <= 0) {
@@ -165,7 +202,9 @@ class AdminController extends Controller
             $response['users'] = $users;
         }
 
-        return response()->json($response, 200);
+        return response()->json(
+            ['status' => 'success',
+            'message'=>$response], 200);
     }
 
     public function updateStatus(Request $request, $id)
@@ -178,7 +217,9 @@ class AdminController extends Controller
 
         $question->update(['status' => $validated['status']]);
 
-        return response()->json(['message' => 'Status updated successfully.', $question], 200);
+        return response()->json([
+            'status'=>'success',
+            'message' => 'Status updated successfully.', $question], 200);
     }
 
     public function deleteQuestion($id)
@@ -186,7 +227,9 @@ class AdminController extends Controller
         $question = Question::findOrFail($id);
         $question->delete();
 
-        return response()->json(['message' => 'Question deleted successfully.'], 200);
+        return response()->json([
+            'status'=>'success',
+            'message' => 'Question deleted successfully.'], 200);
     }
 
     // dashboard

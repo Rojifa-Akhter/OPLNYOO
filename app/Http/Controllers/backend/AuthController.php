@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -22,31 +23,39 @@ class AuthController extends Controller
     //registration
     public function signup(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
             'location' => 'required|string|max:255',
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:ADMIN,OWNER,USER',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'role' => 'nullable|in:ADMIN,OWNER,USER',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240', // Image validation
         ]);
-        $imagePath = null;
-        if ($request->has('image')) {
-            $image = $request->file('image');
-            $path = $image->store('profile_images', 'public');
-            $imagePath = asset('storage/' . $path);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'message' => $validator->errors()]);
+        }
+
+        $role = $request->role ?? 'USER';
+
+        $path = null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('profile_images', 'public');
         }
 
         $otp = rand(100000, 999999);
+        $otp_expires_at = now()->addMinutes(10);
 
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'location' => $validated['location'],
-            'password' => bcrypt($validated['password']),
-            'role' => $validated['role'],
-            'image' => $imagePath,
+            'name' => $request->name,
+            'email' => $request->email,
+            'location' => $request->location,
+            'password' => bcrypt($request->password),
+            'role' => $role,
+            'image' => $path, // Store the image path
             'otp' => $otp,
+            'otp_expires_at' => $otp_expires_at,
+            'status' => 'inactive',
         ]);
 
         try {
@@ -61,7 +70,17 @@ class AuthController extends Controller
             default => 'Welcome User! Please verify your email.',
         };
 
-        return response()->json(['message' => $message], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'location' => $user->location,
+                'role' => $user->role,
+                'image' => $user->image ? asset('storage/' . $user->image) : null,
+            ]
+        ], 200);
     }
 
     //social login
@@ -120,6 +139,37 @@ class AuthController extends Controller
         ]);
     }
 
+    //verify  otp
+    public function verify(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'otp' => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'message' => $validator->errors()], 400);
+        }
+        $user = User::where('otp', $request->otp)->first();
+
+        if ($user) {
+            $user->otp = null;
+            $user->email_verified_at = now();
+            $user->status = 'active';
+            $user->save();
+
+            $token = JWTAuth::fromUser($user);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'OTP verified successfully.',
+                'access_token' => $token,
+
+            ], 200);
+        }
+
+        return response()->json(['error' => 'Invalid OTP.'], 400);
+    }
+
     //login
     public function login(Request $request)
     {
@@ -144,37 +194,6 @@ class AuthController extends Controller
 
         return response()->json(['error' => 'Unauthorized'], 401);
     }
-
-    public function verify(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'otp' => 'required|numeric',
-        ]);
-
-        if ($validator->fails()) {
-            return response($validator->messages(), 200);
-        }
-
-        $user = User::where('otp', $request->otp)->first();
-
-        if ($user) {
-            $user->otp = null;
-            $user->email_verified_at = now();
-            $user->save();
-
-            $token = JWTAuth::fromUser($user);
-
-            return response()->json([
-                'message' => 'Email is verified',
-                'access_token' => $token,
-                'token_type' => 'bearer',
-                'email_verified_at' => $user->email_verified_at,
-            ], 200);
-        }
-
-        return response()->json(['error' => 'Invalid OTP.'], 400);
-    }
-
     public function guard()
     {
         return Auth::guard('api');
@@ -187,40 +206,35 @@ class AuthController extends Controller
             return response()->json(['error' => 'User not authenticated.'], 401);
         }
 
-        $validatedData = $request->validate([
+        $validatedData = validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:users,email,' . $user->id,
+
             'location' => 'nullable|string|max:255',
             'password' => 'nullable|string|min:6|confirmed',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+            'image' => 'nullable',
         ]);
+        if ($validatedData->fails()) {
+            return response()->json(['status' => false, 'message' => $validatedData->errors()]);
+        }
+        $validated = $validatedData->validated();
+        $user->name = $validated['name'] ?? $user->name;
+        $user->location = $validated['location'] ?? $user->location;
 
-        if ($request->has('name')) {
-            $user->name = $validatedData['name'];
-        }
-        if ($request->has('email')) {
-            $user->email = $validatedData['email'];
-        }
-        if ($request->has('location')) {
-            $user->location = $validatedData['location'];
-        }
-        if ($request->has('password')) {
-            $user->password = Hash::make($validatedData['password']);
+        if (!empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
         }
 
-        if ($request->has('image')) {
-            $image = $request->file('image');
-
-            if ($image->isValid()) {
-                $path = $image->store('profile_images', 'public');
-                $imagePath = asset('storage/' . $path);
-
-                $user->image = $imagePath;
-            } else {
-                return response()->json(['error' => 'The image failed to upload.'], 400);
+        if ($request->hasFile('image')) {
+            // Delete the existing image if it exists
+            if (!empty($user->image)) {
+                $oldImagePath = str_replace('storage/', '', $user->image); // Remove 'storage/' prefix
+                if (Storage::disk('public')->exists($oldImagePath)) {
+                    Storage::disk('public')->delete($oldImagePath);
+                }
             }
-        } elseif (!$request->has('image') && !$user->image) {
-            $user->image = null;
+
+            $path = $request->file('image')->store('profile_images', 'public');
+            $user->image = $path; // Store the relative path in the database
         }
 
         $user->save();
@@ -232,10 +246,12 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'location' => $user->location,
                 'image' => $user->image,
+                'role' => $user->role,
             ],
         ], 200);
     }
 
+    //change password
     public function changePassword(Request $request)
     {
         $request->validate([
@@ -256,9 +272,11 @@ class AuthController extends Controller
         $user->password = Hash::make($request->new_password);
         $user->save();
 
-        return response()->json(['message' => 'Password changed successfully']);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password changed successfully']);
     }
-
+    // forgate password
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -270,9 +288,9 @@ class AuthController extends Controller
         }
         $otp = rand(100000, 999999);
 
-        DB::table('password_reset_tokens')->updateOrInsert(
+        DB::table('users')->updateOrInsert(
             ['email' => $request->email],
-            ['token' => $otp, 'created_at' => now()]
+            ['otp' => $otp, 'created_at' => now()]
         );
 
         try {
@@ -282,40 +300,14 @@ class AuthController extends Controller
             return response()->json(['error' => 'Failed to send OTP.'], 500);
         }
 
-        return response()->json(['message' => 'OTP sent to your email.'], 200);
-    }
-    public function verifyOtp(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'otp' => 'required|numeric',
-        ]);
-
-        $tokenData = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->where('token', $request->otp)
-            ->where('created_at', '>=', now()->subMinutes(15))
-            ->first();
-
-        if (!$tokenData) {
-            return response()->json(['error' => 'Invalid or expired OTP.'], 400);
-        }
-
-        $user = User::where('email', $request->email)->first();
-        if (!$user) {
-            return response()->json(['error' => 'User not found.'], 404);
-        }
-
-        $resetToken = JWTAuth::fromUser($user);
-
         return response()->json([
-            'message' => 'OTP verified successfully.',
-            'reset_token' => $resetToken,
-        ], 200);
+            'status' => 'success',
+            'message' => 'OTP sent to your email.'], 200);
     }
 
     public function resetPassword(Request $request)
     {
+        // return $request;
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|string|min:6|confirmed',
@@ -329,7 +321,9 @@ class AuthController extends Controller
         $user->password = bcrypt($request->password);
         $user->save();
 
-        return response()->json(['message' => 'Password reset successful.'], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password reset successful.'], 200);
     }
 
     public function resendOtp(Request $request)
@@ -344,9 +338,9 @@ class AuthController extends Controller
 
         $otp = rand(100000, 999999);
 
-        DB::table('password_reset_tokens')->updateOrInsert(
+        DB::table('users')->updateOrInsert(
             ['email' => $request->email],
-            ['token' => $otp, 'created_at' => now()]
+            ['otp' => $otp, 'created_at' => now()]
         );
 
         try {
@@ -356,30 +350,26 @@ class AuthController extends Controller
             return response()->json(['error' => 'Failed to resend OTP.'], 500);
         }
 
-        return response()->json(['message' => 'OTP resent to your email.'], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'OTP resent to your email.'], 200);
     }
 
     public function logout()
     {
-        auth('api')->logout();
-        return response()->json(['message' => 'Successfully logged out']);
-    }
-    public function userData()
-    {
-        $users = User::all()->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'location' => $user->location,
-                'avatar' => $user->image ? asset('storage/' . $user->image) : url('/img/3.jpg'),
-                'role' => $user->role,
-                'description' => $user->description,
-                'google_id' => $user->google_id,
-            ];
-        });
+        if (!auth('api')->check()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User is not authenticated.',
+            ], 401);
+        }
 
-        return response()->json($users);
+        auth('api')->logout();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Successfully logged out.',
+        ]);
     }
 
 }

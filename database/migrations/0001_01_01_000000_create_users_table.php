@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('location');
             $table->string('otp')->nullable();
+            $table->string('otp_expires_at')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('google_id')->nullable();
             $table->string('facebook_id')->nullable();
