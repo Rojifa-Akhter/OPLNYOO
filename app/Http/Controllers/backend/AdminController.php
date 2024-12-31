@@ -27,17 +27,17 @@ class AdminController extends Controller
         if ($validate->fails()) {
             return response()->json(['status' => false, 'message' => $validate->errors()]);
         }
-        $imagePath = null;
+        $path = null;
         if ($request->has('image')) {
             $image = $request->file('image');
             $path = $image->store('profile_images', 'public');
-            
+
             // $imagePath = asset('storage/' . $path);
         }
 
         $owner = User::create([
             'name' => $request->name,
-            'image' => $imagePath,
+            'image' => $path,
             'email' => $request->email,
             'role' => 'OWNER',
             'location' => $request->location ?? null,
@@ -268,7 +268,9 @@ class AdminController extends Controller
             ];
         }
 
-        return response()->json($statistics);
+        return response()->json(
+            ['status'=>'success',
+            'message' =>$statistics],200);
     }
 
 }

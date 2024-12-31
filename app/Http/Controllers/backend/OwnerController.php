@@ -73,6 +73,7 @@ class OwnerController extends Controller
         }
 
         return response()->json([
+            'status'=> 'success',
             'message' => 'Questions processed successfully, notifications sent to admin and users.',
             'data' => $questions,
         ], 201);
@@ -83,7 +84,9 @@ class OwnerController extends Controller
         $question = Question::findOrFail($id);
 
         $question->delete();
-        return response()->json(['message' => 'Question Delete Successfully'], 200);
+        return response()->json([
+            'status'=>'success',
+            'message' => 'Question Delete Successfully'], 200);
     }
 
     public function privacy(Request $request)
@@ -100,7 +103,9 @@ class OwnerController extends Controller
 
         ]);
 
-        return response()->json(['message' => $privacy], 201);
+        return response()->json([
+            'status'=>'success',
+            'message' => $privacy], 201);
     }
     public function termsCondition(Request $request)
     {
@@ -113,7 +118,9 @@ class OwnerController extends Controller
 
         ]);
 
-        return response()->json(['message' => $termsCndition], 201);
+        return response()->json([
+            'status'=>'success',
+            'message' => $termsCndition], 201);
     }
 
     //about add
@@ -212,6 +219,7 @@ class OwnerController extends Controller
         }
 
         return response()->json([
+            'status' => 'success',
             'message' => 'Answers Submitted Successfully',
             'data' => $submittedAnswers,
         ], 201);
@@ -239,6 +247,7 @@ class OwnerController extends Controller
         });
 
         return response()->json([
+            'status' => 'success',
             'notifications' => $formattedNotifications,
         ], 200);
     }
@@ -250,6 +259,7 @@ class OwnerController extends Controller
 
         if (!$notification) {
             return response()->json([
+                'status' => false,
                 'message' => 'Notification not found or does not belong to the user.',
             ], 404);
         }
@@ -257,6 +267,7 @@ class OwnerController extends Controller
         $notification->markAsRead();
 
         return response()->json([
+            'status'=> 'success',
             'message' => 'Notification marked as read successfully.',
             'notification_id' => $id,
         ], 200);
@@ -284,7 +295,9 @@ class OwnerController extends Controller
             return "You submitted your feedback to $ownerName on " . $answer->created_at->format('Y-m-d');
         });
 
-        return response()->json(['data' => $messages], 200);
+        return response()->json([
+            'status'=> 'success',
+            'data' => $messages], 200);
     }
 
     public function companylist()
@@ -302,6 +315,7 @@ class OwnerController extends Controller
             ->paginate($perPage);
 
         return response()->json([
+            'status'=> 'success',
             'owner_list' => $owners,
         ], 200);
     }
@@ -345,6 +359,7 @@ class OwnerController extends Controller
         });
 
         return response()->json([
+            'status' => 'success',
             'companyDetails' => [
                 'image' => $image,
                 'name' => $owner->name,
@@ -368,7 +383,9 @@ class OwnerController extends Controller
             ];
         });
 
-        return response()->json(['message' => $privacyWithOwnerName], 200);
+        return response()->json([
+            'status'=>'success',
+            'message' => $privacyWithOwnerName], 200);
     }
 
     public function termsConditionView()
@@ -384,7 +401,9 @@ class OwnerController extends Controller
             ];
         });
 
-        return response()->json(['message' => $termsWithOwnerName], 200);
+        return response()->json([
+            'status'=>'success',
+            'message' => $termsWithOwnerName], 200);
     }
     public function aboutView()
     {
@@ -399,7 +418,9 @@ class OwnerController extends Controller
             ];
         });
 
-        return response()->json(['message' => $aboutWithOwnerName], 200);
+        return response()->json([
+            'status'=>'success',
+            'message' => $aboutWithOwnerName], 200);
     }
 
 //owner dashboard
@@ -413,6 +434,7 @@ class OwnerController extends Controller
         $totalAnswersToday = userAnswer::whereDate('created_at', now()->toDateString())->count();
 
         return response()->json([
+            'status'=>'success',
             'total_users' => $totalUsers,
             'total_submitted_answers' => $totalSubmittedAnswers,
             'response_by_today' => $totalAnswersToday,
@@ -428,7 +450,8 @@ class OwnerController extends Controller
         $feedback = userAnswer::with('user:id,name,email,location')->select('id', 'user_id')->paginate($perPage);
 
         return response()->json(
-            $feedback, 200);
+            ['status'=>'success',$feedback]
+            , 200);
     }
     public function getNotifications()
     {
@@ -442,7 +465,9 @@ class OwnerController extends Controller
             ];
         });
 
-        return response()->json(['notifications' => $notifications], 200);
+        return response()->json([
+            'status'=>'success',
+            'notifications' => $notifications], 200);
     }
     public function markNotificationAsRead($notificationId)
     {
@@ -458,7 +483,9 @@ class OwnerController extends Controller
             $notification->markAsRead();
         }
 
-        return response()->json(['message' => 'Notification marked as read.'], 200);
+        return response()->json([
+            'status'=>'success',
+            'message' => 'Notification marked as read.'], 200);
     }
     // view submitted answer and delete answer
     public function viewUserSubmittedAnswers()
@@ -501,6 +528,7 @@ class OwnerController extends Controller
         });
 
         return response()->json([
+            'status'=>'success',
             'data' => $formattedAnswers,
             'total_answers' => $submittedAnswers->total(),
             'pagination' => [
@@ -517,8 +545,9 @@ class OwnerController extends Controller
         $answers = userAnswer::findOrFail($id);
 
         $answers->delete();
-        return response()->json(["message" => "Submitted Answer Delete Successfully"]);
+        return response()->json([
+            'status'=>'success',"message" => "Submitted Answer Delete Successfully"]);
     }
-    
+
 
 }
