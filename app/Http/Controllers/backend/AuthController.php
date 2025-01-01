@@ -372,4 +372,13 @@ class AuthController extends Controller
         ]);
     }
 
+    public function userData(Request $request)
+    {
+        $user = User::all();
+
+        return response()->json([
+            'status' => 'success',
+            'message'=>$user]);
+    }
+
 }

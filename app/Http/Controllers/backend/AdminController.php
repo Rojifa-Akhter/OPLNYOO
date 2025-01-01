@@ -57,13 +57,24 @@ class AdminController extends Controller
 
     public function deleteUser(Request $request)
     {
-        $user = User::findOrFail('id');
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'message' => $validator->errors()], 400);
+        }
+
+        $user = User::find($request->id);
+
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'User not found'], 404);
+        }
+
         $user->delete();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User deleted successfully'], 200);
+        return response()->json(['status' => 'success', 'message' => 'User deleted successfully'], 200);
     }
+
     public function SoftDeletedUsers()
     {
         $deletedUsers = User::onlyTrashed()->get();

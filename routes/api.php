@@ -1,14 +1,13 @@
 <?php
 
+use App\Http\Controllers\backend\AboutController;
 use App\Mail\OTPVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\backend\AuthController;
 use App\Http\Controllers\backend\AdminController;
 use App\Http\Controllers\backend\OwnerController;
-
-
-
+use App\Http\Controllers\backend\UserController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -38,7 +37,7 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
     Route::get('/notifications', [AdminController::class, 'getAdminNotifications']);
     Route::patch('/Notifications/{id}', [AdminController::class, 'markAdminNotificationAsRead']);
     Route::post('/updateStatus/{id}', [AdminController::class, 'updateStatus']);
-    Route::delete('/deleteQuestion/{id}', [AdminController::class, 'deleteQuestion']);
+    Route::delete('/questionDelete', [AdminController::class, 'questionDelete']);
     Route::get('/dashboard-statistics', [AdminController::class, 'getDashboardStatistics']);
     Route::get('/monthly-answer-statistics', [AdminController::class, 'getMonthlyAnswerStatistics']);
 
@@ -48,14 +47,21 @@ Route::middleware(['auth:api', 'ADMIN'])->group(function () {
 // owner
 Route::middleware(['auth:api', 'OWNER'])->group(function () {
     Route::post('/questionCreate', [OwnerController::class, 'questionCreate']);
-    Route::delete('/questionDelete/{id}', [OwnerController::class, 'questionDelete']);
-
+    Route::delete('/questions', [OwnerController::class, 'questionDelete']);
 
     Route::post('/privacy', [OwnerController::class, 'privacy']);
+    Route::get('/privacyList', [OwnerController::class, 'privacyView']);
+
     Route::post('/termsCondition', [OwnerController::class, 'termsCondition']);
-    Route::post('/about', [OwnerController::class, 'about']);
-    Route::get('/dashboard-statistics', [OwnerController::class, 'getOwnerStatistics']);
+    Route::get('/termsConditionView', [OwnerController::class, 'termsConditionView']);
+
+    Route::post('/about', [AboutController::class, 'about']);
+    Route::get('/aboutView', [AboutController::class,'aboutView']);
+
+    Route::get('/dashboard-owner', [OwnerController::class, 'getOwnerStatistics']);
+
     Route::get('/feedbackforms', [OwnerController::class, 'viewFeedbackAnswers']);
+
     Route::get('/getNotifications', [OwnerController::class, 'getNotifications']);
     Route::post('/notifications/{id}', [OwnerController::class, 'markNotificationAsRead']);
     Route::get('/viewAnswers', [OwnerController::class, 'viewUserSubmittedAnswers']);
@@ -65,15 +71,16 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
 
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
-    Route::post('/submit-answers', [OwnerController::class, 'submitAnswers']);
+    Route::post('/submit-answers', [UserController::class, 'submitAnswers']);
+    
     Route::get('/getUserNotifications', [OwnerController::class, 'getUserNotifications']);
     Route::patch('/userNotifications/{id}', [OwnerController::class, 'markNotificationAsRead']);
     Route::get('/survey', [OwnerController::class, 'survey']);
     Route::get('/companylist', [OwnerController::class, 'companylist']);
     Route::get('/company-details/{ownerId}', [OwnerController::class, 'companyDetails']);
     Route::get('/privacyView', [OwnerController::class, 'privacyView']);
-    Route::get('/termsConditionView', [OwnerController::class, 'termsConditionView']);
-    Route::get('/aboutView', [OwnerController::class, 'aboutView']);
+    // Route::get('/termsConditionView', [OwnerController::class, 'termsConditionView']);
+    // Route::get('/aboutView', [OwnerController::class, 'aboutView']);
 });
 
 
