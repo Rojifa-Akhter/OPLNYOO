@@ -72,15 +72,18 @@ Route::middleware(['auth:api', 'OWNER'])->group(function () {
 });
 Route::middleware(['auth:api', 'USER'])->group(function () {
     Route::post('/submit-answers', [UserController::class, 'submitAnswers']);
-    
+    Route::get('/survey', [UserController::class, 'survey']);
+    Route::get('/companylist', [UserController::class, 'companylist']);
+    Route::get('/company-details/{ownerId}', [UserController::class, 'companyDetails']);
+
     Route::get('/getUserNotifications', [OwnerController::class, 'getUserNotifications']);
     Route::patch('/userNotifications/{id}', [OwnerController::class, 'markNotificationAsRead']);
-    Route::get('/survey', [OwnerController::class, 'survey']);
-    Route::get('/companylist', [OwnerController::class, 'companylist']);
-    Route::get('/company-details/{ownerId}', [OwnerController::class, 'companyDetails']);
-    Route::get('/privacyView', [OwnerController::class, 'privacyView']);
-    // Route::get('/termsConditionView', [OwnerController::class, 'termsConditionView']);
-    // Route::get('/aboutView', [OwnerController::class, 'aboutView']);
+
+
+
+    Route::get('/privacyView', [UserController::class, 'privacyView']);
+    Route::get('/termsConditionView', [UserController::class, 'termsConditionView']);
+    Route::get('/aboutView', [UserController::class, 'aboutView']);
 });
 
 

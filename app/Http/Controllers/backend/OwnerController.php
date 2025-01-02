@@ -9,12 +9,10 @@ use App\Models\Question;
 use App\Models\termsConditions;
 use App\Models\User;
 use App\Models\userAnswer;
-use App\Notifications\AnswerSubmittedNotification;
 use App\Notifications\NewQuestionNotification;
 use App\Notifications\QuestionForm;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
+
 use Illuminate\Support\Facades\Validator;
 
 class OwnerController extends Controller
@@ -158,12 +156,7 @@ class OwnerController extends Controller
             'status' => 'success',
             'message' => $termsCndition], 201);
     }
-
-
-    //about add
-
-
-
+    
 
     public function getUserNotifications()
     {
@@ -213,105 +206,6 @@ class OwnerController extends Controller
             'notification_id' => $id,
         ], 200);
     }
-
-    public function survey()
-    {
-        $userId = auth()->id();
-        $perPage = request()->query('per_page', 15);
-
-        if ($perPage <= 0) {
-            return response()->json(['message' => "'per_page' must be a positive number."], 400);
-        }
-
-        $submittedAnswers = userAnswer::with(['question.owner'])
-            ->where('user_id', $userId)
-            ->paginate($perPage);
-
-        if ($submittedAnswers->isEmpty()) {
-            return response()->json(['message' => 'You have not submitted any feedback yet.'], 200);
-        }
-
-        $messages = $submittedAnswers->map(function ($answer) {
-            $ownerName = $answer->question->owner->name ?? 'Unknown Owner';
-            return "You submitted your feedback to $ownerName on " . $answer->created_at->format('Y-m-d');
-        });
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $messages], 200);
-    }
-
-    public function companylist()
-    {
-        $perPage = request()->query('per_page', 15);
-
-        if ($perPage <= 0) {
-            return response()->json([
-                'message' => "'per_page' must be a positive number.",
-            ], 400);
-        }
-
-        $owners = User::select('name', 'location')
-            ->where('role', 'OWNER')
-            ->paginate($perPage);
-
-        return response()->json([
-            'status' => 'success',
-            'owner_list' => $owners,
-        ], 200);
-    }
-
-    public function companyDetails($ownerId)
-    {
-        $owner = User::select('id', 'image', 'name', 'location', 'description')
-            ->where('role', 'OWNER')
-            ->where('id', $ownerId)
-            ->first();
-
-        if (!$owner) {
-            return response()->json([
-                'message' => 'Owner not found.',
-            ], 404);
-        }
-
-        // Use default image from the public folder if no image is found
-        $image = $owner->image ? asset('storage/' . $owner->image) : asset('img/3.jpg');
-
-        // Fetch submitted answers for this owner
-        $userId = auth()->id();
-        $submittedAnswers = userAnswer::with(['question'])
-            ->where('user_id', $userId)
-            ->whereHas('question', function ($query) use ($ownerId) {
-                $query->where('owner_id', $ownerId);
-            })
-            ->get();
-
-        $formattedAnswers = $submittedAnswers->map(function ($answer) {
-            $decodedOptions = null;
-            if (in_array($answer->question->answer_type, ['multiple', 'checkbox'])) {
-                $decodedOptions = json_decode($answer->options);
-            }
-
-            return [
-                'question' => $answer->question->question,
-                'options' => $decodedOptions,
-                'short_answer' => $answer->short_answer,
-            ];
-        });
-
-        return response()->json([
-            'status' => 'success',
-            'companyDetails' => [
-                'image' => $image,
-                'name' => $owner->name,
-                'location' => $owner->location,
-                'description' => $owner->description,
-            ],
-            'submitted_answers' => $formattedAnswers,
-        ], 200);
-    }
-
-
     public function aboutView()
     {
         $about = About::with('owner:id,name')->whereNotNull('owner_id')->get();
